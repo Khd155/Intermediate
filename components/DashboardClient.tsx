@@ -24,7 +24,7 @@ export function DashboardClient({ data }: DashboardClientProps) {
   })
 
   const families = useMemo(
-    () => [...new Set(data.students.map(s => s.family))],
+    () => Array.from(new Set(data.students.map(s => s.family))),
     [data.students]
   )
 
@@ -63,9 +63,9 @@ export function DashboardClient({ data }: DashboardClientProps) {
             </div>
             <div>
               <h1 className="text-lg font-bold text-slate-100 leading-tight">
-               حصاد البرنامج الأسري
+                حصاد البرنامج الأسري
               </h1>
-              <p className="text-xs text-slate-500"> حلقة ثاني متوسط</p>
+              <p className="text-xs text-slate-500">حلقة ثاني متوسط</p>
             </div>
           </div>
 
@@ -158,7 +158,7 @@ export function DashboardClient({ data }: DashboardClientProps) {
         {/* Footer */}
         <footer className="text-center py-6 text-xs text-slate-700 border-t border-[rgba(212,160,23,0.05)]">
           <p>
-             &nbsp;حصاد البرنامج الأسري &nbsp; 
+             &nbsp; حصاد البرنامج الأسري &nbsp; 
           </p>
           <p className="mt-1 text-slate-800">
             {enabledWeeksCount} أسبوع مفعل من أصل 3
