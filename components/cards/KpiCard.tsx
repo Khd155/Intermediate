@@ -49,7 +49,7 @@ export function KpiCard({ title, value, subtitle, icon, accent = 'gold', delay =
         relative overflow-hidden rounded-2xl border ${styles.border}
         bg-gradient-to-br ${styles.bg} backdrop-blur-sm
         shadow-xl ${styles.glow} shadow-lg
-        p-6 animate-slide-up
+        p-4 sm:p-6 animate-slide-up
         hover:scale-[1.02] transition-transform duration-300
       `}
       style={{ animationDelay: `${delay}ms`, animationFillMode: 'backwards' }}
@@ -66,19 +66,19 @@ export function KpiCard({ title, value, subtitle, icon, accent = 'gold', delay =
       </div>
 
       <div className="relative z-10">
-        <div className="flex items-start justify-between mb-4">
-          <div className={`w-12 h-12 rounded-xl ${styles.icon} flex items-center justify-center text-2xl`}>
+        <div className="flex items-start justify-between mb-3">
+          <div className={`w-9 h-9 sm:w-12 sm:h-12 rounded-xl ${styles.icon} flex items-center justify-center text-lg sm:text-2xl`}>
             {icon}
           </div>
           {subtitle && (
-            <span className="text-xs text-slate-500 bg-slate-800/50 rounded-full px-2 py-1">
+            <span className="text-[10px] sm:text-xs text-slate-500 bg-slate-800/50 rounded-full px-2 py-1 truncate max-w-[80px] sm:max-w-none">
               {subtitle}
             </span>
           )}
         </div>
 
-        <p className="text-sm text-slate-400 mb-1 font-medium">{title}</p>
-        <p className={`text-3xl font-bold ${styles.value} tracking-tight`}>
+        <p className="text-xs sm:text-sm text-slate-400 mb-1 font-medium">{title}</p>
+        <p className={`text-xl sm:text-3xl font-bold ${styles.value} tracking-tight truncate`}>
           {value}
         </p>
       </div>
