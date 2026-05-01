@@ -2,29 +2,34 @@ import { RawSheetRow, StudentData, FamilyStats, DashboardData, WeekEnabled } fro
 
 const sum = (arr: number[]): number => arr.reduce((a, b) => a + b, 0)
 
+const WEEK_MAX = { week1: 2700, week2: 2800, week3: 2800 }
+
+function calcMax(weekEnabled: WeekEnabled): number {
+  return (
+    (weekEnabled.week1 ? WEEK_MAX.week1 : 0) +
+    (weekEnabled.week2 ? WEEK_MAX.week2 : 0) +
+    (weekEnabled.week3 ? WEEK_MAX.week3 : 0)
+  ) || WEEK_MAX.week1
+}
+
 export function parseStudents(
   rows: RawSheetRow[],
   familyMap: Record<string, string>,
   weekEnabled: WeekEnabled
 ): StudentData[] {
   const students: StudentData[] = []
-
-  // الدرجة القصوى الكلية = 3000
-  const maxPossible = 3000
+  const maxPossible = calcMax(weekEnabled)
 
   for (const row of rows) {
-    // col_0 = رقم، col_1 = اسم، col_2 = حفظ، col_3 = مراجعة، col_4+ = درجات
     const name = row['col_1']
     if (!name || typeof name !== 'string' || !name.trim()) continue
 
-    // اجمع كل الأرقام من col_4 إلى col_48
     const values: number[] = []
     for (let i = 4; i <= 48; i++) {
       const v = row[`col_${i}`]
       values.push(typeof v === 'number' ? v : 0)
     }
 
-    // نحتاج 45 قيمة على الأقل
     if (values.length < 45) continue
 
     const w1 = values.slice(0, 12)
@@ -71,7 +76,7 @@ export function computeFamilyStats(
     familyMap[s.family].push(s)
   }
 
-  const maxPerStudent = 3000
+  const maxPerStudent = calcMax(weekEnabled)
 
   const stats: FamilyStats[] = Object.entries(familyMap).map(([name, members]) => {
     const studentsTotal = sum(members.map(m => m.total))
@@ -91,25 +96,17 @@ export function computeFamilyStats(
 export function buildDashboard(
   rows: RawSheetRow[],
   membersRows: RawSheetRow[],
-  weekEnabled: WeekEnabled
-,
+  weekEnabled: WeekEnabled,
   taqyeemScores: Record<string, number> = {}
 ): DashboardData {
-  // هيكل شيت الأعضاء:
-  // الصف 1 = أسماء الأسر (headers): col_0 = أسرة الامام مسلم، col_1 = أسرة الامام البخاري
-  // الصفوف التالية = أسماء الأعضاء في كل عمود
   const familyMap: Record<string, string> = {}
   if (membersRows.length > 0) {
-    // الصف الأول يحتوي أسماء الأسر
     const familyNames: Record<string, string> = {}
     const headerRow = membersRows[0]
     Object.keys(headerRow).forEach(key => {
       const val = headerRow[key]
-      if (typeof val === 'string' && val.trim()) {
-        familyNames[key] = val.trim()
-      }
+      if (typeof val === 'string' && val.trim()) familyNames[key] = val.trim()
     })
-    // باقي الصفوف = أعضاء
     for (const row of membersRows.slice(1)) {
       Object.keys(familyNames).forEach(colKey => {
         const memberName = row[colKey]
@@ -120,12 +117,9 @@ export function buildDashboard(
     }
   }
 
-  const maxPossibleScore = 3000
-
-  // إخفاء الطلاب بدون أسرة
+  const maxPossibleScore = calcMax(weekEnabled)
   const allStudents = parseStudents(rows, familyMap, weekEnabled)
   const students = allStudents.filter(s => s.family !== 'غير محدد')
-  // إعادة ترتيب الرتب بعد الفلترة
   students.forEach((s, i) => { s.rank = i + 1 })
   const families = computeFamilyStats(students, weekEnabled, taqyeemScores)
 

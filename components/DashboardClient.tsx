@@ -61,11 +61,11 @@ export function DashboardClient({ data }: DashboardClientProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-sm">
-                🌿
+                ☪
               </div>
               <div>
                 <h1 className="text-sm font-bold text-slate-100">حصاد البرنامج الأسري</h1>
-                <p className="text-[10px] text-slate-500">حلقة ثاني متوسط </p>
+                <p className="text-[10px] text-slate-500">نظام متابعة الحلقات</p>
               </div>
             </div>
             <span className="text-xs text-slate-400 bg-slate-800/60 rounded-lg px-2 py-1">
@@ -90,10 +90,10 @@ export function DashboardClient({ data }: DashboardClientProps) {
         {/* Desktop */}
         <div className="hidden md:flex max-w-screen-2xl mx-auto px-6 py-4 items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-xl">🌿</div>
+            <div className="w-10 h-10 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-xl">☪</div>
             <div>
-              <h1 className="text-lg font-bold text-slate-100">حصاد البرنامج الأسري</h1>
-              <p className="text-xs text-slate-500"> حلقة ثاني متوسط </p>
+              <h1 className="text-lg font-bold text-slate-100">لوحة متابعة حلقات القرآن الكريم</h1>
+              <p className="text-xs text-slate-500">نظام متكامل للمتابعة والإحصاء</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -134,10 +134,10 @@ export function DashboardClient({ data }: DashboardClientProps) {
         </div>
 
         {/* TABLE */}
-        <StudentsTable students={filteredStudents} selectedWeek={filters.week} maxScore={data.maxPossibleScore} />
+        <StudentsTable students={filteredStudents} selectedWeek={filters.week} maxScore={data.maxPossibleScore} weekEnabled={data.weekEnabled} />
 
         <footer className="text-center py-6 text-xs text-slate-700 border-t border-[rgba(212,160,23,0.05)]">
-          <p> &nbsp; حصاد البرنامج الأسري &nbsp; </p>
+          <p>﷽ &nbsp; لوحة متابعة حلقات القرآن الكريم &nbsp; ☪</p>
           <p className="mt-1 text-slate-800">{enabledWeeksCount} أسبوع مفعل من أصل 3</p>
         </footer>
       </main>
