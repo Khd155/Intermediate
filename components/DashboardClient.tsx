@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { DashboardData, FilterState } from '@/lib/types'
-import { filterStudents, getWeekScore } from '@/lib/dataProcessor'
+import { filterStudents, getWeekScore, getWeekPercentage } from '@/lib/dataProcessor'
 import { KpiCard } from '@/components/cards/KpiCard'
 import { WeekStatus } from '@/components/cards/WeekStatus'
 import { FamilyStatsCard } from '@/components/cards/FamilyStatsCard'
@@ -29,8 +29,8 @@ export function DashboardClient({ data }: DashboardClientProps) {
   )
 
   const filteredStudents = useMemo(
-    () => filterStudents(data.students, filters.student, filters.week, filters.family),
-    [data.students, filters]
+    () => filterStudents(data.students, filters.student, filters.family),
+    [data.students, filters.student, filters.family]
   )
 
   const totalScore = useMemo(() => {
@@ -40,9 +40,9 @@ export function DashboardClient({ data }: DashboardClientProps) {
 
   const avgPercentage = useMemo(() => {
     if (filteredStudents.length === 0) return 0
-    const avg = filteredStudents.reduce((acc, s) => acc + s.percentage, 0) / filteredStudents.length
+    const avg = filteredStudents.reduce((acc, s) => acc + getWeekPercentage(s, filters.week), 0) / filteredStudents.length
     return Math.round(avg)
-  }, [filteredStudents])
+  }, [filteredStudents, filters.week])
 
   const enabledWeeksCount = [
     data.weekEnabled.week1,
