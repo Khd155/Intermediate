@@ -9,10 +9,8 @@ out/
 tsconfig.tsbuildinfo
 *.tsbuildinfo
 
-# env
-.env
-.env.local
-.env.*.local
+# env - never commit any env files
+.env*
 
 # misc
 .DS_Store
