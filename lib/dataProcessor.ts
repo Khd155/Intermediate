@@ -163,10 +163,16 @@ export function getScoreLabel(percentage: number): string {
   return 'ضعيف'
 }
 
+export function getWeekPercentage(student: StudentData, week: string): number {
+  if (week === '1') return WEEK_MAX.week1 > 0 ? Math.min(100, Math.round((student.week1 / WEEK_MAX.week1) * 100)) : 0
+  if (week === '2') return WEEK_MAX.week2 > 0 ? Math.min(100, Math.round((student.week2 / WEEK_MAX.week2) * 100)) : 0
+  if (week === '3') return WEEK_MAX.week3 > 0 ? Math.min(100, Math.round((student.week3 / WEEK_MAX.week3) * 100)) : 0
+  return student.percentage
+}
+
 export function filterStudents(
   students: StudentData[],
   selectedStudent: string,
-  selectedWeek: string,
   selectedFamily: string
 ): StudentData[] {
   return students.filter(s => {
