@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 export function middleware(request: NextRequest) {
-  const host = request.headers.get('host') ?? ''
+  const { pathname } = request.nextUrl
 
-  // When accessed via hassad.khormi.site, rewrite / → /hassad
-  if (host.startsWith('hassad.')) {
+  // Redirect root to /dashboard from any domain
+  if (pathname === '/') {
     const url = request.nextUrl.clone()
-    if (url.pathname === '/') {
-      url.pathname = '/hassad'
-      return NextResponse.rewrite(url)
-    }
+    url.pathname = '/dashboard'
+    return NextResponse.redirect(url)
   }
 
   return NextResponse.next()
