@@ -543,13 +543,12 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
     sentinelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
   }, [revealed, phase])
 
-  // When done: scroll UP so rank-4 is at the top of viewport,
-  // letting rank 3 → 2 → 1 follow naturally below it
-  const rank4Ref = useRef<HTMLDivElement>(null)
+  // When done: flip order to rank-1-first, then scroll container to top
+  const containerRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (phase !== 'done') return
     const t = setTimeout(() => {
-      rank4Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
     }, 600)
     return () => clearTimeout(t)
   }, [phase])
@@ -575,16 +574,15 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
         {phase === 'done' && <span style={{ fontSize: 18 }}>🏅</span>}
       </div>
 
-      {/* Always ascending order: rank N at top → rank 1 at bottom.
-          On done, scroll so rank 4 is at viewport top, 3→2→1 follow below. */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
-        {sorted.slice(0, revealed).map((m, i) => {
-          const rank     = n - i              // N … 1
-          const isNew    = phase !== 'done' && i === revealed - 1
-          const isGold   = i === n - 1       // rank 1
-          const isSilver = i === n - 2       // rank 2
-          const isBronze = i === n - 3       // rank 3
-          const isRank4  = i === n - 4       // rank 4 — scroll target when done
+      {/* Reveal: ascending (rank N→1). Done: reversed (rank 1 at top→N at bottom). */}
+      <div ref={containerRef} style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+        {(phase === 'done' ? [...sorted].reverse() : sorted.slice(0, revealed)).map((m, i) => {
+          const originalIdx = sorted.indexOf(m)
+          const rank     = n - originalIdx   // always correct regardless of display order
+          const isNew    = phase !== 'done' && originalIdx === revealed - 1
+          const isGold   = rank === 1
+          const isSilver = rank === 2
+          const isBronze = rank === 3
           const isPodium = isGold || isSilver || isBronze
 
           const medalEmoji   = isGold ? '🥇' : isSilver ? '🥈' : isBronze ? '🥉' : null
@@ -594,9 +592,7 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
           const cardBg       = isGold ? 'rgba(212,160,23,0.14)' : isSilver ? 'rgba(148,163,184,0.07)' : isBronze ? 'rgba(251,146,60,0.07)' : 'rgba(99,102,241,0.04)'
 
           return (
-            <div key={m.name}
-              ref={isRank4 ? rank4Ref : n < 4 && i === 0 ? rank4Ref : undefined}
-              style={{
+            <div key={m.name} style={{
                 display: 'flex', alignItems: 'center', gap: 14,
                 background: cardBg,
                 border: `${isPodium ? '2px' : '1px'} solid ${podiumBorder}`,
