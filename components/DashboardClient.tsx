@@ -73,10 +73,6 @@ export function DashboardClient({ data }: DashboardClientProps) {
               {data.students.length} طالب
             </span>
           </div>
-          <Link href="/hassad" className="flex items-center gap-1.5 px-3 py-1 text-[11px] font-semibold text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-xl hover:bg-yellow-500/20 transition-colors">
-            🌾 الحصاد
-          </Link>
-
           {/* Week badges scrollable */}
           <div className="flex gap-2 overflow-x-auto" style={{scrollbarWidth:'none'}}>
             {([['week1','أسبوع ١'],['week2','أسبوع ٢'],['week3','أسبوع ٣']] as const).map(([key, label]) => (
@@ -104,9 +100,6 @@ export function DashboardClient({ data }: DashboardClientProps) {
           <div className="flex items-center gap-3">
             <WeekStatus weekEnabled={data.weekEnabled} />
             <div className="text-xs text-slate-600 bg-slate-800/50 rounded-lg px-3 py-1.5">{data.students.length} طالب</div>
-            <Link href="/hassad" className="flex items-center gap-2 px-4 py-1.5 text-xs font-semibold text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-xl hover:bg-yellow-500/20 transition-colors">
-              🌾 الحصاد التقديمي
-            </Link>
           </div>
         </div>
       </header>
