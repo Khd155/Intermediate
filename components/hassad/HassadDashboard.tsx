@@ -112,50 +112,6 @@ function StudentCard({ student, rank, score, maxScore }: {
   )
 }
 
-// ─── Comparison card (shown after all revealed) ───────────────────────────────
-
-function ComparisonCard({ students, scoreKey, maxScore }: {
-  students: StudentData[]
-  scoreKey: keyof StudentData
-  maxScore: number
-}) {
-  if (students.length < 2) return null
-  const sorted = [...students].sort((a, b) => (b[scoreKey] as number) - (a[scoreKey] as number))
-  const top = sorted[0]
-  const btm = sorted[sorted.length - 1]
-  const diff = (top[scoreKey] as number) - (btm[scoreKey] as number)
-  const topPct = Math.round((top[scoreKey] as number) / maxScore * 100)
-  const btmPct = Math.round((btm[scoreKey] as number) / maxScore * 100)
-
-  return (
-    <FadeIn>
-      <div style={{
-        background: 'rgba(212,160,23,0.05)', border: '1px solid rgba(212,160,23,0.15)',
-        borderRadius: 14, padding: '16px 20px', marginTop: 8, marginBottom: 8,
-      }}>
-        <div style={{ fontSize: 11, color: '#d4a017', letterSpacing: 2, marginBottom: 12 }}>مقارنة الأسبوع</div>
-        <div style={{ display: 'flex', gap: 12 }}>
-          {[
-            { label: 'الأعلى ⬆', student: top, pct: topPct, color: '#22c55e' },
-            { label: 'الأدنى ⬇', student: btm, pct: btmPct, color: '#ef4444' },
-          ].map(item => (
-            <div key={item.label} style={{ flex: 1, background: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: '10px 14px' }}>
-              <div style={{ fontSize: 11, color: '#475569', marginBottom: 4 }}>{item.label}</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0', marginBottom: 2 }}>{item.student.name}</div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: item.color }}>
-                {(item.student[scoreKey] as number).toLocaleString('ar-SA')}
-                <span style={{ fontSize: 11, color: '#64748b', fontWeight: 400, marginRight: 4 }}>({item.pct}%)</span>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div style={{ marginTop: 10, fontSize: 12, color: '#475569', textAlign: 'center' }}>
-          الفارق: <span style={{ color: '#d4a017', fontWeight: 700 }}>{diff.toLocaleString('ar-SA')}</span> درجة
-        </div>
-      </div>
-    </FadeIn>
-  )
-}
 
 // ─── Week view ────────────────────────────────────────────────────────────────
 
@@ -257,10 +213,6 @@ function WeekView({ weekNum, students, playState, onStart }: {
           </div>
         )}
 
-        {/* Comparison card after done */}
-        {allDone && (
-          <ComparisonCard students={sorted} scoreKey={scoreKey} maxScore={maxScore} />
-        )}
       </div>
     </div>
   )
@@ -287,7 +239,6 @@ function TotalView({ students, maxScore }: { students: StudentData[]; maxScore: 
         {sorted.map((s, i) => (
           <StudentCard key={s.name} student={s} rank={i + 1} score={s.total} maxScore={maxScore} />
         ))}
-        <ComparisonCard students={sorted} scoreKey="total" maxScore={maxScore} />
       </div>
     </div>
   )
