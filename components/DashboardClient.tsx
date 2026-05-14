@@ -11,12 +11,14 @@ import { StudentBarChart } from '@/components/charts/StudentBarChart'
 import { WeeklyLineChart } from '@/components/charts/WeeklyLineChart'
 import { FamilyPieChart } from '@/components/charts/FamilyPieChart'
 import { StudentsTable } from '@/components/table/StudentsTable'
+import { HassadView } from '@/components/hassad/HassadView'
 
 interface DashboardClientProps {
   data: DashboardData
 }
 
 export function DashboardClient({ data }: DashboardClientProps) {
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'hassad'>('dashboard')
   const [filters, setFilters] = useState<FilterState>({
     student: 'all',
     week: 'all',
@@ -72,6 +74,22 @@ export function DashboardClient({ data }: DashboardClientProps) {
               {data.students.length} طالب
             </span>
           </div>
+          {/* Tab switcher mobile */}
+          <div className="flex rounded-xl border border-[rgba(212,160,23,0.2)] overflow-hidden self-start">
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className={`px-3 py-1 text-[11px] font-semibold transition-colors ${activeTab === 'dashboard' ? 'bg-yellow-500/20 text-yellow-400' : 'text-slate-500'}`}
+            >
+              📊 المتابعة
+            </button>
+            <button
+              onClick={() => setActiveTab('hassad')}
+              className={`px-3 py-1 text-[11px] font-semibold transition-colors border-r border-[rgba(212,160,23,0.2)] ${activeTab === 'hassad' ? 'bg-yellow-500/20 text-yellow-400' : 'text-slate-500'}`}
+            >
+              🌾 الحصاد
+            </button>
+          </div>
+
           {/* Week badges scrollable */}
           <div className="flex gap-2 overflow-x-auto" style={{scrollbarWidth:'none'}}>
             {([['week1','أسبوع ١'],['week2','أسبوع ٢'],['week3','أسبوع ٣']] as const).map(([key, label]) => (
@@ -99,11 +117,27 @@ export function DashboardClient({ data }: DashboardClientProps) {
           <div className="flex items-center gap-3">
             <WeekStatus weekEnabled={data.weekEnabled} />
             <div className="text-xs text-slate-600 bg-slate-800/50 rounded-lg px-3 py-1.5">{data.students.length} طالب</div>
+            <div className="flex rounded-xl border border-[rgba(212,160,23,0.2)] overflow-hidden">
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                className={`px-4 py-1.5 text-xs font-semibold transition-colors ${activeTab === 'dashboard' ? 'bg-yellow-500/20 text-yellow-400' : 'text-slate-500 hover:text-slate-300'}`}
+              >
+                📊 لوحة المتابعة
+              </button>
+              <button
+                onClick={() => setActiveTab('hassad')}
+                className={`px-4 py-1.5 text-xs font-semibold transition-colors border-r border-[rgba(212,160,23,0.2)] ${activeTab === 'hassad' ? 'bg-yellow-500/20 text-yellow-400' : 'text-slate-500 hover:text-slate-300'}`}
+              >
+                🌾 الحصاد
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-screen-2xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
+      {activeTab === 'hassad' && <HassadView data={data} />}
+
+      <main className={`max-w-screen-2xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6 ${activeTab === 'hassad' ? 'hidden' : ''}`}>
 
         {/* FILTERS */}
         <Filters
