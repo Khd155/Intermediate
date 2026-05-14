@@ -535,11 +535,12 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
   )
   const totalPages = useMemo(() => sorted.reduce((s, m) => s + m.pages, 0), [sorted])
 
-  // ref on the newest card (last DOM item = visual top in column-reverse)
-  // scrollIntoView is cross-browser safe — avoids scrollTop direction ambiguity
-  const newestRef = useRef<HTMLDivElement>(null)
+  // In column-reverse: scrollTop=0 = visual TOP = newest item.
+  // overflowAnchor:none prevents the browser from auto-adjusting scrollTop when
+  // new items appear at the top, which would push the viewport down and hide them.
+  const containerRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    newestRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
   }, [revealed])
 
   if (phase === 'idle') return (
@@ -565,10 +566,13 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
         {phase === 'done' && <span style={{ fontSize: 18 }}>🏅</span>}
       </div>
 
-      {/* column-reverse: sorted[0] sits at visual bottom, sorted[n-1] at visual top */}
-      <div style={{
+      {/* column-reverse: sorted[0] = visual bottom, sorted[n-1] = visual top (newest)
+          overflowAnchor:none stops the browser adjusting scrollTop when new items
+          appear at the top — keeps the viewport locked at scroll=0 (newest item). */}
+      <div ref={containerRef} style={{
         flex: 1, overflowY: 'auto', padding: '16px 20px',
         display: 'flex', flexDirection: 'column-reverse', gap: 10,
+        overflowAnchor: 'none',
       }}>
         {sorted.slice(0, revealed).map((m, i) => {
           const rank      = n - i
@@ -585,7 +589,7 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
           const cardBg       = isGold ? 'rgba(212,160,23,0.14)' : isSilver ? 'rgba(148,163,184,0.07)' : isBronze ? 'rgba(251,146,60,0.07)' : 'rgba(99,102,241,0.04)'
 
           return (
-            <div key={m.name} ref={isNew ? newestRef : undefined} style={{
+            <div key={m.name} style={{
               display: 'flex', alignItems: 'center', gap: 14,
               background: cardBg,
               border: `${isPodium ? '2px' : '1px'} solid ${podiumBorder}`,
