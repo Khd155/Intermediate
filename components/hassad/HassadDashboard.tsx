@@ -534,16 +534,12 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
     [memorizations]
   )
   const totalPages = useMemo(() => sorted.reduce((s, m) => s + m.pages, 0), [sorted])
-  const ref = useRef<HTMLDivElement>(null)
 
-  // scroll to show visual top (newest item) in column-reverse layout
-  // requestAnimationFrame ensures DOM has painted before we read scrollHeight
+  // ref on the newest card (last DOM item = visual top in column-reverse)
+  // scrollIntoView is cross-browser safe — avoids scrollTop direction ambiguity
+  const newestRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    requestAnimationFrame(() => {
-      el.scrollTop = el.scrollHeight - el.clientHeight
-    })
+    newestRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   }, [revealed])
 
   if (phase === 'idle') return (
@@ -570,14 +566,13 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
       </div>
 
       {/* column-reverse: sorted[0] sits at visual bottom, sorted[n-1] at visual top */}
-      <div ref={ref} style={{
+      <div style={{
         flex: 1, overflowY: 'auto', padding: '16px 20px',
         display: 'flex', flexDirection: 'column-reverse', gap: 10,
-        overflowAnchor: 'none',  // prevent browser scroll-anchoring fighting our scroll logic
       }}>
         {sorted.slice(0, revealed).map((m, i) => {
           const rank      = n - i
-          const isNew     = i === revealed - 1
+          const isNew     = i === revealed - 1  // last DOM item = visual top in column-reverse
           const isGold    = i === n - 1   // rank 1
           const isSilver  = i === n - 2   // rank 2
           const isBronze  = i === n - 3   // rank 3
@@ -590,7 +585,7 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
           const cardBg       = isGold ? 'rgba(212,160,23,0.14)' : isSilver ? 'rgba(148,163,184,0.07)' : isBronze ? 'rgba(251,146,60,0.07)' : 'rgba(99,102,241,0.04)'
 
           return (
-            <div key={m.name} style={{
+            <div key={m.name} ref={isNew ? newestRef : undefined} style={{
               display: 'flex', alignItems: 'center', gap: 14,
               background: cardBg,
               border: `${isPodium ? '2px' : '1px'} solid ${podiumBorder}`,
