@@ -535,13 +535,21 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
   )
   const totalPages = useMemo(() => sorted.reduce((s, m) => s + m.pages, 0), [sorted])
 
-  // Sentinel div at the bottom of the list.
-  // scrollIntoView on a plain div in a normal column container is the most
-  // reliable cross-browser scroll — no column-reverse, no scrollTop math.
+  // Scroll down with each new reveal
   const sentinelRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     sentinelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
   }, [revealed])
+
+  // When all revealed, scroll back up so top-3 are visible at the top
+  const top3Ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (phase !== 'done') return
+    const t = setTimeout(() => {
+      top3Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 800)
+    return () => clearTimeout(t)
+  }, [phase])
 
   if (phase === 'idle') return (
     <IdleScreen icon="📖" title="بيانات الحفظ"
@@ -582,8 +590,10 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
           const podiumBorder = isGold ? 'rgba(212,160,23,0.42)' : isSilver ? 'rgba(148,163,184,0.35)' : isBronze ? 'rgba(251,146,60,0.35)' : 'rgba(99,102,241,0.18)'
           const cardBg       = isGold ? 'rgba(212,160,23,0.14)' : isSilver ? 'rgba(148,163,184,0.07)' : isBronze ? 'rgba(251,146,60,0.07)' : 'rgba(99,102,241,0.04)'
 
+          const isTop3Start = i === Math.max(0, n - 3)
+
           return (
-            <div key={m.name} style={{
+            <div key={m.name} ref={isTop3Start ? top3Ref : undefined} style={{
               display: 'flex', alignItems: 'center', gap: 14,
               background: cardBg,
               border: `${isPodium ? '2px' : '1px'} solid ${podiumBorder}`,
