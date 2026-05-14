@@ -195,20 +195,27 @@ export async function getDashboardData() {
 
   const weekEnabled = parseWeekEnabled([w1Cell, w2Cell, w3Cell])
 
+  const muslim_w1  = weekEnabled.week1 ? parseColSum(taq_muslim_w1)  : 0
+  const muslim_w2  = weekEnabled.week2 ? parseColSum(taq_muslim_w2)  : 0
+  const muslim_w3  = weekEnabled.week3 ? parseColSum(taq_muslim_w3)  : 0
+  const bukhari_w1 = weekEnabled.week1 ? parseColSum(taq_bukhari_w1) : 0
+  const bukhari_w2 = weekEnabled.week2 ? parseColSum(taq_bukhari_w2) : 0
+  const bukhari_w3 = weekEnabled.week3 ? parseColSum(taq_bukhari_w3) : 0
+
   const taqyeemScores: Record<string, number> = {
-    'أسرة الامام مسلم':
-      (weekEnabled.week1 ? parseColSum(taq_muslim_w1) : 0) +
-      (weekEnabled.week2 ? parseColSum(taq_muslim_w2) : 0) +
-      (weekEnabled.week3 ? parseColSum(taq_muslim_w3) : 0),
-    'أسرة الامام البخاري':
-      (weekEnabled.week1 ? parseColSum(taq_bukhari_w1) : 0) +
-      (weekEnabled.week2 ? parseColSum(taq_bukhari_w2) : 0) +
-      (weekEnabled.week3 ? parseColSum(taq_bukhari_w3) : 0),
+    'أسرة الامام مسلم':   muslim_w1  + muslim_w2  + muslim_w3,
+    'أسرة الامام البخاري': bukhari_w1 + bukhari_w2 + bukhari_w3,
+  }
+
+  const taqyeemByWeek = {
+    w1: { 'أسرة الامام مسلم': muslim_w1,  'أسرة الامام البخاري': bukhari_w1 },
+    w2: { 'أسرة الامام مسلم': muslim_w2,  'أسرة الامام البخاري': bukhari_w2 },
+    w3: { 'أسرة الامام مسلم': muslim_w3,  'أسرة الامام البخاري': bukhari_w3 },
   }
 
   const dataRows = rawToRows(mainValues.slice(7))
   const rows = dataRows
   const membersRows = rawToRows(membersValues)
 
-  return buildDashboard(rows, membersRows, weekEnabled, taqyeemScores)
+  return buildDashboard(rows, membersRows, weekEnabled, taqyeemScores, taqyeemByWeek)
 }
