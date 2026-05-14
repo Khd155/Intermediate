@@ -537,10 +537,13 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
   const ref = useRef<HTMLDivElement>(null)
 
   // scroll to show visual top (newest item) in column-reverse layout
+  // requestAnimationFrame ensures DOM has painted before we read scrollHeight
   useEffect(() => {
-    if (ref.current) {
-      ref.current.scrollTop = ref.current.scrollHeight - ref.current.clientHeight
-    }
+    const el = ref.current
+    if (!el) return
+    requestAnimationFrame(() => {
+      el.scrollTop = el.scrollHeight - el.clientHeight
+    })
   }, [revealed])
 
   if (phase === 'idle') return (
@@ -561,9 +564,7 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
         <span style={{ fontSize: 26 }}>📖</span>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 17, fontWeight: 800, color: '#f0f0e0' }}>بيانات الحفظ</div>
-          <div style={{ fontSize: 11, color: '#64748b' }}>
-            {n} طالب · من الأقل إلى الأعلى · آخر طالب = المركز الأول 🏅
-          </div>
+          <div style={{ fontSize: 11, color: '#64748b' }}>{n} طالب</div>
         </div>
         {phase === 'done' && <span style={{ fontSize: 18 }}>🏅</span>}
       </div>
@@ -572,47 +573,52 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
       <div ref={ref} style={{
         flex: 1, overflowY: 'auto', padding: '16px 20px',
         display: 'flex', flexDirection: 'column-reverse', gap: 10,
+        overflowAnchor: 'none',  // prevent browser scroll-anchoring fighting our scroll logic
       }}>
         {sorted.slice(0, revealed).map((m, i) => {
-          const rank       = n - i          // counts down: N, N-1, ..., 1
-          const isNew      = i === revealed - 1   // last DOM item = visual top = just revealed
-          const isChampion = i === n - 1     // rank 1, most pages
-          const isTop3     = i >= n - 3      // last 3 get special styling during reveal
+          const rank      = n - i
+          const isNew     = i === revealed - 1
+          const isGold    = i === n - 1   // rank 1
+          const isSilver  = i === n - 2   // rank 2
+          const isBronze  = i === n - 3   // rank 3
+          const isPodium  = isGold || isSilver || isBronze
+
+          const medalEmoji   = isGold ? '🥇' : isSilver ? '🥈' : isBronze ? '🥉' : null
+          const podiumColor  = isGold ? '#fbbf24' : isSilver ? '#94a3b8' : isBronze ? '#fb923c' : '#6366f1'
+          const podiumBg     = isGold ? 'rgba(212,160,23,0.18)' : isSilver ? 'rgba(148,163,184,0.15)' : isBronze ? 'rgba(251,146,60,0.15)' : 'rgba(99,102,241,0.12)'
+          const podiumBorder = isGold ? 'rgba(212,160,23,0.42)' : isSilver ? 'rgba(148,163,184,0.35)' : isBronze ? 'rgba(251,146,60,0.35)' : 'rgba(99,102,241,0.18)'
+          const cardBg       = isGold ? 'rgba(212,160,23,0.14)' : isSilver ? 'rgba(148,163,184,0.07)' : isBronze ? 'rgba(251,146,60,0.07)' : 'rgba(99,102,241,0.04)'
 
           return (
             <div key={m.name} style={{
               display: 'flex', alignItems: 'center', gap: 14,
-              background: isChampion
-                ? 'rgba(212,160,23,0.14)'
-                : isTop3 ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.04)',
-              border: isChampion
-                ? '2px solid rgba(212,160,23,0.42)'
-                : `1px solid rgba(99,102,241,${isTop3 ? 0.22 : 0.1})`,
+              background: cardBg,
+              border: `${isPodium ? '2px' : '1px'} solid ${podiumBorder}`,
               borderRadius: 14, padding: '14px 18px',
               animation: isNew
                 ? 'hifz-card-in 0.55s cubic-bezier(0.34,1.56,0.64,1) both'
-                : (isChampion && phase === 'done' ? 'champ-glow 2s ease-in-out infinite' : 'none'),
+                : (isGold && phase === 'done' ? 'champ-glow 2s ease-in-out infinite' : 'none'),
             }}>
-              {/* rank badge */}
+              {/* medal / rank badge */}
               <div style={{
-                width: isChampion ? 44 : 38, height: isChampion ? 44 : 38,
+                width: isPodium ? 44 : 38, height: isPodium ? 44 : 38,
                 borderRadius: '50%', flexShrink: 0,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: isChampion ? 22 : 13, fontWeight: 700,
-                color: isChampion ? '#fbbf24' : '#6366f1',
-                background: isChampion ? 'rgba(212,160,23,0.18)' : 'rgba(99,102,241,0.12)',
-                border: `1px solid rgba(${isChampion ? '212,160,23,0.35' : '99,102,241,0.22'})`,
-                animation: isChampion && phase === 'done' ? 'winner-glow 1.8s ease-in-out infinite' : 'none',
+                fontSize: isPodium ? 22 : 13, fontWeight: 700,
+                color: podiumColor, background: podiumBg,
+                border: `1px solid ${podiumBorder}`,
+                animation: isGold && phase === 'done' ? 'winner-glow 1.8s ease-in-out infinite' : 'none',
               }}>
-                {isChampion ? '🏅' : rank}
+                {medalEmoji ?? rank}
               </div>
 
               {/* name + sura range */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{
-                  fontSize: isChampion ? 17 : 15, fontWeight: isChampion ? 900 : 700,
-                  color: isChampion ? '#fbbf24' : '#e2e8f0', marginBottom: 4,
-                  animation: isChampion && phase === 'done' ? 'winner-glow 1.8s ease-in-out infinite' : 'none',
+                  fontSize: isGold ? 17 : 15, fontWeight: isPodium ? 800 : 700,
+                  color: isGold ? '#fbbf24' : isSilver ? '#cbd5e1' : isBronze ? '#fdba74' : '#e2e8f0',
+                  marginBottom: 4,
+                  animation: isGold && phase === 'done' ? 'winner-glow 1.8s ease-in-out infinite' : 'none',
                 }}>
                   {m.name}
                 </div>
@@ -628,9 +634,9 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
               {/* pages */}
               <div style={{ textAlign: 'left', flexShrink: 0 }}>
                 <div style={{
-                  fontSize: isChampion ? 28 : 22, fontWeight: 900,
-                  color: isChampion ? '#fbbf24' : isTop3 ? '#a5b4fc' : '#818cf8',
-                  animation: isChampion && phase === 'done' ? 'winner-glow 1.8s ease-in-out infinite' : 'none',
+                  fontSize: isGold ? 28 : isPodium ? 24 : 22, fontWeight: 900,
+                  color: podiumColor,
+                  animation: isGold && phase === 'done' ? 'winner-glow 1.8s ease-in-out infinite' : 'none',
                 }}>
                   {m.pages.toLocaleString('ar-SA')}
                 </div>
