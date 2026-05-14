@@ -14,7 +14,7 @@ const WEEK_ICON: Record<number, string>   = { 1: '🌱', 2: '🌿', 3: '🌾' }
 type Section    = 'intro' | 'w1' | 'w2' | 'w3' | 'total' | 'fw1' | 'fw2' | 'fw3' | 'final' | 'hifz'
 type FwKey      = 'fw1' | 'fw2' | 'fw3'
 type Phase      = 'idle' | 'revealing' | 'done'
-type FinalPhase = 'suspense' | 'winner' | 'results'
+type FinalPhase = 'suspense' | 'dark' | 'winner' | 'results'
 
 const NAV_LABELS: Partial<Record<Section, string>> = {
   w1: '🌱 أسبوع ١', w2: '🌿 أسبوع ٢', w3: '🌾 أسبوع ٣',
@@ -381,14 +381,19 @@ function FinalSection({ families, finalPhase, suspenseCount, onGoHifz, hasHifz }
 
   return (
     <div style={{ flex: 1, position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      {/* Background glow */}
+
+      {/* Background — shifts from dark to golden on winner */}
       <div style={{
         position: 'absolute', inset: 0, pointerEvents: 'none',
-        background: showConfetti
-          ? 'radial-gradient(ellipse at 50% 40%, rgba(212,160,23,0.2) 0%, transparent 65%)'
-          : 'radial-gradient(ellipse at 50% 50%, rgba(99,102,241,0.06) 0%, transparent 65%)',
-        animation: 'glow-pulse 2.5s ease-in-out infinite',
-        transition: 'background 1.5s ease',
+        background: finalPhase === 'dark'
+          ? 'radial-gradient(ellipse at 50% 50%, rgba(99,102,241,0.04) 0%, transparent 55%)'
+          : showConfetti
+            ? 'radial-gradient(ellipse at 50% 40%, rgba(212,160,23,0.22) 0%, transparent 65%)'
+            : 'radial-gradient(ellipse at 50% 50%, rgba(99,102,241,0.06) 0%, transparent 65%)',
+        animation: finalPhase === 'dark'
+          ? 'dark-breathe 2s ease-in-out infinite'
+          : 'glow-pulse 2.5s ease-in-out infinite',
+        transition: 'background 2s ease',
       }} />
 
       {/* Confetti – looping */}
@@ -404,7 +409,7 @@ function FinalSection({ families, finalPhase, suspenseCount, onGoHifz, hasHifz }
 
       <div style={{ position: 'relative', zIndex: 10, textAlign: 'center', padding: '0 28px', maxWidth: 480, width: '100%' }}>
 
-        {/* ── Suspense ── */}
+        {/* ── Suspense countdown ── */}
         {finalPhase === 'suspense' && (
           <div>
             <div style={{ fontSize: 22, fontWeight: 700, color: '#94a3b8', marginBottom: 20, letterSpacing: 2 }}>
@@ -429,29 +434,33 @@ function FinalSection({ families, finalPhase, suspenseCount, onGoHifz, hasHifz }
           </div>
         )}
 
-        {/* ── Winner ── */}
+        {/* ── Dark silence (5s) — no text, only ambient glow ── */}
+        {finalPhase === 'dark' && (
+          <div style={{ opacity: 0 }} />
+        )}
+
+        {/* ── Winner — explosive reveal ── */}
         {finalPhase === 'winner' && winner && (
-          <div style={{ animation: 'winner-appear 0.7s cubic-bezier(0.34,1.56,0.64,1) forwards' }}>
-            <div style={{ fontSize: 88, animation: 'trophy-float 1.3s ease-in-out infinite', marginBottom: 16 }}>🏆</div>
+          <div style={{ animation: 'winner-explode 0.85s cubic-bezier(0.34,1.56,0.64,1) forwards' }}>
+            <div style={{ fontSize: 96, animation: 'trophy-float 1.3s ease-in-out infinite', marginBottom: 16 }}>🏆</div>
             <div style={{ fontSize: 14, color: '#d4a017', letterSpacing: 3, marginBottom: 14, fontWeight: 600 }}>
               🎉 الأسرة الرائدة في الحصاد الأسري 🎉
             </div>
             <div style={{
-              fontSize: 46, fontWeight: 900, color: '#fbbf24', marginBottom: 12,
+              fontSize: 52, fontWeight: 900, color: '#fbbf24', marginBottom: 12,
               animation: 'winner-glow 1.8s ease-in-out infinite',
             }}>
               {winner.name}
             </div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: '#f0c040' }}>
+            <div style={{ fontSize: 24, fontWeight: 700, color: '#f0c040' }}>
               {winner.total.toLocaleString('ar-SA')} درجة
             </div>
           </div>
         )}
 
-        {/* ── Results ── */}
+        {/* ── Results: winner + 2nd + diff ── */}
         {finalPhase === 'results' && winner && (
-          <div style={{ animation: 'winner-appear 0.5s ease forwards', width: '100%' }}>
-            {/* Winner card */}
+          <div style={{ animation: 'winner-explode 0.6s ease forwards', width: '100%' }}>
             <FadeIn>
               <div style={{
                 background: 'rgba(212,160,23,0.1)', border: '2px solid rgba(212,160,23,0.35)',
@@ -467,7 +476,6 @@ function FinalSection({ families, finalPhase, suspenseCount, onGoHifz, hasHifz }
               </div>
             </FadeIn>
 
-            {/* Second place */}
             {second && (
               <FadeIn delay={300}>
                 <div style={{
@@ -483,7 +491,6 @@ function FinalSection({ families, finalPhase, suspenseCount, onGoHifz, hasHifz }
               </FadeIn>
             )}
 
-            {/* Difference */}
             {second && diff > 0 && (
               <FadeIn delay={500}>
                 <div style={{ fontSize: 14, color: '#475569', textAlign: 'center', marginBottom: 8 }}>
@@ -497,7 +504,7 @@ function FinalSection({ families, finalPhase, suspenseCount, onGoHifz, hasHifz }
         )}
       </div>
 
-      {/* "التالي" button — bottom left, only in results phase */}
+      {/* "التالي" — bottom-left, results phase only */}
       {finalPhase === 'results' && hasHifz && (
         <button onClick={onGoHifz} style={{
           position: 'absolute', bottom: 28, left: 24, zIndex: 20,
@@ -514,6 +521,10 @@ function FinalSection({ families, finalPhase, suspenseCount, onGoHifz, hasHifz }
 }
 
 // ─── HifzSection ──────────────────────────────────────────────────────────────
+// sorted ascending (least → most pages). Display is bottom-up:
+//   sorted[0] = rank N = appears first at visual bottom
+//   sorted[N-1] = rank 1 = appears last at visual top (champion)
+// column-reverse: DOM order maps sorted[0]→bottom, sorted[N-1]→top
 
 function HifzSection({ memorizations, phase, revealed, onStart }: {
   memorizations: StudentMemorization[]; phase: Phase; revealed: number; onStart: () => void
@@ -524,13 +535,21 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
   )
   const totalPages = useMemo(() => sorted.reduce((s, m) => s + m.pages, 0), [sorted])
   const ref = useRef<HTMLDivElement>(null)
-  useEffect(() => { ref.current?.scrollTo({ top: ref.current.scrollHeight, behavior: 'smooth' }) }, [revealed])
+
+  // scroll to show visual top (newest item) in column-reverse layout
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.scrollTop = ref.current.scrollHeight - ref.current.clientHeight
+    }
+  }, [revealed])
 
   if (phase === 'idle') return (
     <IdleScreen icon="📖" title="بيانات الحفظ"
       subtitle={`${sorted.length} طالب · ${totalPages.toLocaleString('ar-SA')} صفحة · من الأقل إلى الأعلى`}
       onStart={onStart} />
   )
+
+  const n = sorted.length
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -543,49 +562,81 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 17, fontWeight: 800, color: '#f0f0e0' }}>بيانات الحفظ</div>
           <div style={{ fontSize: 11, color: '#64748b' }}>
-            {sorted.length} طالب · من الأقل إلى الأعلى · آخر طالب = المركز الأول
+            {n} طالب · من الأقل إلى الأعلى · آخر طالب = المركز الأول 🏅
           </div>
         </div>
         {phase === 'done' && <span style={{ fontSize: 18 }}>🏅</span>}
       </div>
-      <div ref={ref} style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+
+      {/* column-reverse: sorted[0] sits at visual bottom, sorted[n-1] at visual top */}
+      <div ref={ref} style={{
+        flex: 1, overflowY: 'auto', padding: '16px 20px',
+        display: 'flex', flexDirection: 'column-reverse', gap: 10,
+      }}>
         {sorted.slice(0, revealed).map((m, i) => {
-          const isLast = i === revealed - 1 && phase === 'done'
+          const rank       = n - i          // counts down: N, N-1, ..., 1
+          const isNew      = i === revealed - 1   // last DOM item = visual top = just revealed
+          const isChampion = i === n - 1     // rank 1, most pages
+          const isTop3     = i >= n - 3      // last 3 get special styling during reveal
+
           return (
-            <FadeIn key={`${m.name}-${i}`}>
+            <div key={m.name} style={{
+              display: 'flex', alignItems: 'center', gap: 14,
+              background: isChampion
+                ? 'rgba(212,160,23,0.14)'
+                : isTop3 ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.04)',
+              border: isChampion
+                ? '2px solid rgba(212,160,23,0.42)'
+                : `1px solid rgba(99,102,241,${isTop3 ? 0.22 : 0.1})`,
+              borderRadius: 14, padding: '14px 18px',
+              animation: isNew
+                ? 'hifz-card-in 0.55s cubic-bezier(0.34,1.56,0.64,1) both'
+                : (isChampion && phase === 'done' ? 'champ-glow 2s ease-in-out infinite' : 'none'),
+            }}>
+              {/* rank badge */}
               <div style={{
-                display: 'flex', alignItems: 'center', gap: 14,
-                background: isLast ? 'rgba(99,102,241,0.12)' : 'rgba(99,102,241,0.04)',
-                border: `1px solid rgba(99,102,241,${isLast ? 0.35 : 0.1})`,
-                borderRadius: 14, padding: '14px 18px', marginBottom: 10,
-                boxShadow: isLast ? '0 4px 24px rgba(99,102,241,0.15)' : 'none',
+                width: isChampion ? 44 : 38, height: isChampion ? 44 : 38,
+                borderRadius: '50%', flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: isChampion ? 22 : 13, fontWeight: 700,
+                color: isChampion ? '#fbbf24' : '#6366f1',
+                background: isChampion ? 'rgba(212,160,23,0.18)' : 'rgba(99,102,241,0.12)',
+                border: `1px solid rgba(${isChampion ? '212,160,23,0.35' : '99,102,241,0.22'})`,
+                animation: isChampion && phase === 'done' ? 'winner-glow 1.8s ease-in-out infinite' : 'none',
               }}>
-                <div style={{
-                  width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 13, fontWeight: 700, color: '#6366f1',
-                  background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.2)',
-                }}>
-                  {i + 1}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: '#e2e8f0', marginBottom: 4 }}>{m.name}</div>
-                  {(m.startSura || m.endSura) && (
-                    <div style={{ fontSize: 12, color: '#64748b' }}>
-                      {m.startSura && <span>من <span style={{ color: '#a5b4fc' }}>{m.startSura}</span></span>}
-                      {m.startSura && m.endSura && <span> · </span>}
-                      {m.endSura && <span>إلى <span style={{ color: '#a5b4fc' }}>{m.endSura}</span></span>}
-                    </div>
-                  )}
-                </div>
-                <div style={{ textAlign: 'left', flexShrink: 0 }}>
-                  <div style={{ fontSize: 22, fontWeight: 900, color: isLast ? '#fbbf24' : '#818cf8' }}>
-                    {m.pages.toLocaleString('ar-SA')}
-                  </div>
-                  <div style={{ fontSize: 11, color: '#475569', textAlign: 'center' }}>صفحة</div>
-                </div>
+                {isChampion ? '🏅' : rank}
               </div>
-            </FadeIn>
+
+              {/* name + sura range */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontSize: isChampion ? 17 : 15, fontWeight: isChampion ? 900 : 700,
+                  color: isChampion ? '#fbbf24' : '#e2e8f0', marginBottom: 4,
+                  animation: isChampion && phase === 'done' ? 'winner-glow 1.8s ease-in-out infinite' : 'none',
+                }}>
+                  {m.name}
+                </div>
+                {(m.startSura || m.endSura) && (
+                  <div style={{ fontSize: 12, color: '#64748b' }}>
+                    {m.startSura && <span>من <span style={{ color: '#a5b4fc' }}>{m.startSura}</span></span>}
+                    {m.startSura && m.endSura && <span> · </span>}
+                    {m.endSura && <span>إلى <span style={{ color: '#a5b4fc' }}>{m.endSura}</span></span>}
+                  </div>
+                )}
+              </div>
+
+              {/* pages */}
+              <div style={{ textAlign: 'left', flexShrink: 0 }}>
+                <div style={{
+                  fontSize: isChampion ? 28 : 22, fontWeight: 900,
+                  color: isChampion ? '#fbbf24' : isTop3 ? '#a5b4fc' : '#818cf8',
+                  animation: isChampion && phase === 'done' ? 'winner-glow 1.8s ease-in-out infinite' : 'none',
+                }}>
+                  {m.pages.toLocaleString('ar-SA')}
+                </div>
+                <div style={{ fontSize: 11, color: '#475569', textAlign: 'center' }}>صفحة</div>
+              </div>
+            </div>
           )
         })}
       </div>
@@ -617,6 +668,7 @@ export function HassadDashboard({ data }: { data: DashboardData }) {
   // Final state (lifted to main for skip button access)
   const [finalPhase,    setFinalPhase]    = useState<FinalPhase>('suspense')
   const [suspenseCount, setSuspenseCount] = useState(10)
+  const [darkCount,     setDarkCount]     = useState(5)
   const [winnerCount,   setWinnerCount]   = useState(30)
 
   // Hifz state
@@ -638,6 +690,7 @@ export function HassadDashboard({ data }: { data: DashboardData }) {
     if (section === 'final') {
       setFinalPhase('suspense')
       setSuspenseCount(10)
+      setDarkCount(5)
       setWinnerCount(30)
     }
   }, [section])
@@ -672,10 +725,18 @@ export function HassadDashboard({ data }: { data: DashboardData }) {
   // ── Final timers ──────────────────────────────────────────────────────────────
   useEffect(() => {
     if (section !== 'final' || finalPhase !== 'suspense') return
-    if (suspenseCount <= 0) { setFinalPhase('winner'); return }
+    if (suspenseCount <= 0) { setFinalPhase('dark'); return }
     const t = setInterval(() => setSuspenseCount(c => c - 1), 1000)
     return () => clearInterval(t)
   }, [section, finalPhase, suspenseCount])
+
+  // 5 seconds of silent darkness before winner reveal
+  useEffect(() => {
+    if (section !== 'final' || finalPhase !== 'dark') return
+    if (darkCount <= 0) { setFinalPhase('winner'); return }
+    const t = setInterval(() => setDarkCount(c => c - 1), 1000)
+    return () => clearInterval(t)
+  }, [section, finalPhase, darkCount])
 
   useEffect(() => {
     if (section !== 'final' || finalPhase !== 'winner') return
@@ -684,11 +745,12 @@ export function HassadDashboard({ data }: { data: DashboardData }) {
     return () => clearInterval(t)
   }, [section, finalPhase, winnerCount])
 
-  // ── Auto-reveal: hifz ─────────────────────────────────────────────────────────
+  // ── Auto-reveal: hifz (last 3 get 5s delay for suspense) ─────────────────────
   useEffect(() => {
     if (section !== 'hifz' || hifzPhase !== 'revealing') return
     if (hifzRevealed >= hifzSorted.length) { setHifzPhase('done'); return }
-    const t = setTimeout(() => setHifzRevealed(n => n + 1), STUDENT_DELAY)
+    const isTop3 = hifzRevealed >= hifzSorted.length - 3
+    const t = setTimeout(() => setHifzRevealed(n => n + 1), isTop3 ? 5000 : STUDENT_DELAY)
     return () => clearTimeout(t)
   }, [section, hifzPhase, hifzRevealed, hifzSorted.length])
 
@@ -729,7 +791,7 @@ export function HassadDashboard({ data }: { data: DashboardData }) {
     (section === 'total' && totalPhase === 'revealing') ||
     (activeFw !== null && familyPhase[activeFw] === 'revealing') ||
     (section === 'hifz' && hifzPhase === 'revealing') ||
-    (section === 'final' && (finalPhase === 'suspense' || finalPhase === 'winner'))
+    (section === 'final' && (finalPhase === 'suspense' || finalPhase === 'dark' || finalPhase === 'winner'))
 
   const handleSkip = useCallback(() => {
     if (activeWn) { setWeekPhase(p => ({ ...p, [activeWn]: 'done' })); navigateNext(); return }
@@ -741,8 +803,9 @@ export function HassadDashboard({ data }: { data: DashboardData }) {
       return
     }
     if (section === 'final') {
-      if (finalPhase === 'suspense') { setFinalPhase('winner'); setWinnerCount(30); return }
-      if (finalPhase === 'winner')   { setFinalPhase('results'); return }
+      if (finalPhase === 'suspense') { setFinalPhase('dark'); return }
+      if (finalPhase === 'dark')    { setFinalPhase('winner'); setWinnerCount(30); return }
+      if (finalPhase === 'winner')  { setFinalPhase('results'); return }
     }
     if (section === 'hifz') { setHifzPhase('done'); return }
   }, [activeWn, section, activeFw, lastFwSection, finalPhase, navigateNext])
@@ -770,14 +833,17 @@ export function HassadDashboard({ data }: { data: DashboardData }) {
       <style>{`
         ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(212,160,23,0.2);border-radius:99px}
         @keyframes glow-pulse    {0%,100%{opacity:0.4}50%{opacity:1}}
+        @keyframes dark-breathe  {0%,100%{opacity:0.08;transform:scale(0.95)}50%{opacity:0.32;transform:scale(1.08)}}
         @keyframes confetti-loop {0%{transform:translateY(108vh) rotate(0deg);opacity:0}5%{opacity:1}95%{opacity:1}100%{transform:translateY(-15vh) rotate(720deg);opacity:0}}
         @keyframes trophy-float  {0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-18px) rotate(4deg)}}
         @keyframes winner-glow   {0%,100%{text-shadow:0 0 40px rgba(251,191,36,0.5)}50%{text-shadow:0 0 100px rgba(251,191,36,1)}}
-        @keyframes winner-appear {from{opacity:0;transform:scale(0.7) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
+        @keyframes winner-explode{0%{opacity:0;transform:scale(0.1) rotate(-15deg)}55%{opacity:1;transform:scale(1.18) rotate(4deg)}75%{transform:scale(0.94) rotate(-2deg)}100%{opacity:1;transform:scale(1) rotate(0deg)}}
         @keyframes count-tick    {from{transform:scale(1.4);opacity:0.3}to{transform:scale(1);opacity:1}}
         @keyframes dot-wave      {0%,100%{transform:translateY(0);opacity:0.3}50%{transform:translateY(-8px);opacity:1}}
         @keyframes section-enter {from{opacity:0.5;transform:scale(0.975)}to{opacity:1;transform:scale(1)}}
         @keyframes drawer-in     {from{transform:translateX(100%)}to{transform:translateX(0)}}
+        @keyframes hifz-card-in  {from{transform:translateY(70px);opacity:0}to{transform:translateY(0);opacity:1}}
+        @keyframes champ-glow    {0%,100%{box-shadow:0 0 24px rgba(212,160,23,0.25)}50%{box-shadow:0 0 52px rgba(212,160,23,0.55)}}
       `}</style>
 
       {/* ── Drawer overlay (rendered at root, above everything) ── */}
