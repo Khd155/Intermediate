@@ -535,17 +535,17 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
   )
   const totalPages = useMemo(() => sorted.reduce((s, m) => s + m.pages, 0), [sorted])
 
-  // In column-reverse: scrollTop=0 = visual TOP = newest item.
-  // overflowAnchor:none prevents the browser from auto-adjusting scrollTop when
-  // new items appear at the top, which would push the viewport down and hide them.
-  const containerRef = useRef<HTMLDivElement>(null)
+  // Sentinel div at the bottom of the list.
+  // scrollIntoView on a plain div in a normal column container is the most
+  // reliable cross-browser scroll — no column-reverse, no scrollTop math.
+  const sentinelRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+    sentinelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
   }, [revealed])
 
   if (phase === 'idle') return (
     <IdleScreen icon="📖" title="بيانات الحفظ"
-      subtitle={`${sorted.length} طالب · ${totalPages.toLocaleString('ar-SA')} صفحة · من الأقل إلى الأعلى`}
+      subtitle={`${sorted.length} طالب · ${totalPages.toLocaleString('ar-SA')} صفحة`}
       onStart={onStart} />
   )
 
@@ -566,21 +566,15 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
         {phase === 'done' && <span style={{ fontSize: 18 }}>🏅</span>}
       </div>
 
-      {/* column-reverse: sorted[0] = visual bottom, sorted[n-1] = visual top (newest)
-          overflowAnchor:none stops the browser adjusting scrollTop when new items
-          appear at the top — keeps the viewport locked at scroll=0 (newest item). */}
-      <div ref={containerRef} style={{
-        flex: 1, overflowY: 'auto', padding: '16px 20px',
-        display: 'flex', flexDirection: 'column-reverse', gap: 10,
-        overflowAnchor: 'none',
-      }}>
+      {/* Normal column — items top→bottom, newest at bottom, sentinel scrolled into view */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
         {sorted.slice(0, revealed).map((m, i) => {
-          const rank      = n - i
-          const isNew     = i === revealed - 1  // last DOM item = visual top in column-reverse
-          const isGold    = i === n - 1   // rank 1
-          const isSilver  = i === n - 2   // rank 2
-          const isBronze  = i === n - 3   // rank 3
-          const isPodium  = isGold || isSilver || isBronze
+          const rank     = n - i           // N → 1 (first revealed = rank N, last = rank 1)
+          const isNew    = i === revealed - 1
+          const isGold   = i === n - 1    // rank 1
+          const isSilver = i === n - 2    // rank 2
+          const isBronze = i === n - 3    // rank 3
+          const isPodium = isGold || isSilver || isBronze
 
           const medalEmoji   = isGold ? '🥇' : isSilver ? '🥈' : isBronze ? '🥉' : null
           const podiumColor  = isGold ? '#fbbf24' : isSilver ? '#94a3b8' : isBronze ? '#fb923c' : '#6366f1'
@@ -593,12 +587,11 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
               display: 'flex', alignItems: 'center', gap: 14,
               background: cardBg,
               border: `${isPodium ? '2px' : '1px'} solid ${podiumBorder}`,
-              borderRadius: 14, padding: '14px 18px',
+              borderRadius: 14, padding: '14px 18px', marginBottom: 10,
               animation: isNew
                 ? 'hifz-card-in 0.55s cubic-bezier(0.34,1.56,0.64,1) both'
                 : (isGold && phase === 'done' ? 'champ-glow 2s ease-in-out infinite' : 'none'),
             }}>
-              {/* medal / rank badge */}
               <div style={{
                 width: isPodium ? 44 : 38, height: isPodium ? 44 : 38,
                 borderRadius: '50%', flexShrink: 0,
@@ -611,7 +604,6 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
                 {medalEmoji ?? rank}
               </div>
 
-              {/* name + sura range */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{
                   fontSize: isGold ? 17 : 15, fontWeight: isPodium ? 800 : 700,
@@ -630,7 +622,6 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
                 )}
               </div>
 
-              {/* pages */}
               <div style={{ textAlign: 'left', flexShrink: 0 }}>
                 <div style={{
                   fontSize: isGold ? 28 : isPodium ? 24 : 22, fontWeight: 900,
@@ -644,6 +635,8 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
             </div>
           )
         })}
+        {/* sentinel: scrolled into view after each reveal, always at the bottom */}
+        <div ref={sentinelRef} style={{ height: 1 }} />
       </div>
     </div>
   )
