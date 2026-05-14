@@ -14,7 +14,7 @@ const WEEK_ICON: Record<number, string>   = { 1: '🌱', 2: '🌿', 3: '🌾' }
 type Section    = 'intro' | 'w1' | 'w2' | 'w3' | 'total' | 'fw1' | 'fw2' | 'fw3' | 'final' | 'hifz'
 type FwKey      = 'fw1' | 'fw2' | 'fw3'
 type Phase      = 'idle' | 'revealing' | 'done'
-type FinalPhase = 'suspense' | 'dark' | 'winner' | 'results'
+type FinalPhase = 'suspense' | 'dark' | 'fake' | 'winner' | 'results'
 
 const NAV_LABELS: Partial<Record<Section, string>> = {
   w1: '🌱 أسبوع ١', w2: '🌿 أسبوع ٢', w3: '🌾 أسبوع ٣',
@@ -377,7 +377,7 @@ function FinalSection({ families, finalPhase, suspenseCount, onGoHifz, hasHifz }
   const winner = families[0]
   const second = families[1]
   const diff   = winner && second ? winner.total - second.total : 0
-  const showConfetti = finalPhase === 'winner' || finalPhase === 'results'
+  const showConfetti = finalPhase === 'fake' || finalPhase === 'winner' || finalPhase === 'results'
 
   return (
     <div style={{ flex: 1, position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -434,12 +434,26 @@ function FinalSection({ families, finalPhase, suspenseCount, onGoHifz, hasHifz }
           </div>
         )}
 
-        {/* ── Dark silence (5s) — no text, only ambient glow ── */}
-        {finalPhase === 'dark' && (
-          <div style={{ opacity: 0 }} />
+        {/* ── Dark silence (5s) ── */}
+        {finalPhase === 'dark' && <div style={{ opacity: 0 }} />}
+
+        {/* ── Fake winner: 2nd place shown as winner for 3s ── */}
+        {finalPhase === 'fake' && second && (
+          <div style={{ animation: 'fake-in 0.75s cubic-bezier(0.34,1.56,0.64,1) forwards' }}>
+            <div style={{ fontSize: 88, animation: 'trophy-float 1.3s ease-in-out infinite', marginBottom: 16 }}>🏆</div>
+            <div style={{ fontSize: 14, color: '#d4a017', letterSpacing: 3, marginBottom: 14, fontWeight: 600 }}>
+              🎉 الأسرة الرائدة في الحصاد الأسري 🎉
+            </div>
+            <div style={{ fontSize: 48, fontWeight: 900, color: '#fbbf24', marginBottom: 12, animation: 'winner-glow 1.8s ease-in-out infinite' }}>
+              {second.name}
+            </div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#f0c040' }}>
+              {second.total.toLocaleString('ar-SA')} درجة
+            </div>
+          </div>
         )}
 
-        {/* ── Winner — explosive reveal ── */}
+        {/* ── Real winner — explosive reveal with shake ── */}
         {finalPhase === 'winner' && winner && (
           <div style={{ animation: 'winner-explode 0.85s cubic-bezier(0.34,1.56,0.64,1) forwards' }}>
             <div style={{ fontSize: 96, animation: 'trophy-float 1.3s ease-in-out infinite', marginBottom: 16 }}>🏆</div>
@@ -503,6 +517,15 @@ function FinalSection({ families, finalPhase, suspenseCount, onGoHifz, hasHifz }
           </div>
         )}
       </div>
+
+      {/* White flash when real winner is revealed (covers fake→real transition) */}
+      {finalPhase === 'winner' && (
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 15, pointerEvents: 'none',
+          background: 'radial-gradient(ellipse at 50% 50%, #fffbe6 0%, rgba(255,240,100,0.85) 40%, rgba(212,160,23,0.4) 70%, transparent 100%)',
+          animation: 'winner-flash 0.9s ease-out forwards',
+        }} />
+      )}
 
       {/* "التالي" — bottom-left, results phase only */}
       {finalPhase === 'results' && hasHifz && (
@@ -736,13 +759,23 @@ export function HassadDashboard({ data }: { data: DashboardData }) {
     return () => clearInterval(t)
   }, [section, finalPhase, suspenseCount])
 
-  // 5 seconds of silent darkness before winner reveal
+  // 5 seconds of silent darkness → fake winner (if 2nd place exists, else real winner)
   useEffect(() => {
     if (section !== 'final' || finalPhase !== 'dark') return
-    if (darkCount <= 0) { setFinalPhase('winner'); return }
+    if (darkCount <= 0) {
+      setFinalPhase(sortedFamilies.length >= 2 ? 'fake' : 'winner')
+      return
+    }
     const t = setInterval(() => setDarkCount(c => c - 1), 1000)
     return () => clearInterval(t)
-  }, [section, finalPhase, darkCount])
+  }, [section, finalPhase, darkCount, sortedFamilies.length])
+
+  // Fake winner shown for 3 seconds, then real reveal
+  useEffect(() => {
+    if (section !== 'final' || finalPhase !== 'fake') return
+    const t = setTimeout(() => setFinalPhase('winner'), 3000)
+    return () => clearTimeout(t)
+  }, [section, finalPhase])
 
   useEffect(() => {
     if (section !== 'final' || finalPhase !== 'winner') return
@@ -797,7 +830,7 @@ export function HassadDashboard({ data }: { data: DashboardData }) {
     (section === 'total' && totalPhase === 'revealing') ||
     (activeFw !== null && familyPhase[activeFw] === 'revealing') ||
     (section === 'hifz' && hifzPhase === 'revealing') ||
-    (section === 'final' && (finalPhase === 'suspense' || finalPhase === 'dark' || finalPhase === 'winner'))
+    (section === 'final' && (finalPhase === 'suspense' || finalPhase === 'dark' || finalPhase === 'fake' || finalPhase === 'winner'))
 
   const handleSkip = useCallback(() => {
     if (activeWn) { setWeekPhase(p => ({ ...p, [activeWn]: 'done' })); navigateNext(); return }
@@ -810,7 +843,8 @@ export function HassadDashboard({ data }: { data: DashboardData }) {
     }
     if (section === 'final') {
       if (finalPhase === 'suspense') { setFinalPhase('dark'); return }
-      if (finalPhase === 'dark')    { setFinalPhase('winner'); setWinnerCount(30); return }
+      if (finalPhase === 'dark')    { setFinalPhase(sortedFamilies.length >= 2 ? 'fake' : 'winner'); return }
+      if (finalPhase === 'fake')    { setFinalPhase('winner'); setWinnerCount(30); return }
       if (finalPhase === 'winner')  { setFinalPhase('results'); return }
     }
     if (section === 'hifz') { setHifzPhase('done'); return }
@@ -844,6 +878,9 @@ export function HassadDashboard({ data }: { data: DashboardData }) {
         @keyframes trophy-float  {0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-18px) rotate(4deg)}}
         @keyframes winner-glow   {0%,100%{text-shadow:0 0 40px rgba(251,191,36,0.5)}50%{text-shadow:0 0 100px rgba(251,191,36,1)}}
         @keyframes winner-explode{0%{opacity:0;transform:scale(0.1) rotate(-15deg)}55%{opacity:1;transform:scale(1.18) rotate(4deg)}75%{transform:scale(0.94) rotate(-2deg)}100%{opacity:1;transform:scale(1) rotate(0deg)}}
+        @keyframes fake-in       {0%{opacity:0;transform:scale(0.6) rotate(-8deg)}60%{transform:scale(1.12) rotate(2deg)}100%{opacity:1;transform:scale(1) rotate(0deg)}}
+        @keyframes winner-flash  {0%{opacity:1}100%{opacity:0}}
+        @keyframes real-shake    {0%,100%{transform:scale(1)}18%{transform:scale(1.06) rotate(-1.5deg)}36%{transform:scale(1.1) rotate(1.5deg)}54%{transform:scale(1.07) rotate(-1deg)}72%{transform:scale(1.04) rotate(0.5deg)}88%{transform:scale(1.02)}}
         @keyframes count-tick    {from{transform:scale(1.4);opacity:0.3}to{transform:scale(1);opacity:1}}
         @keyframes dot-wave      {0%,100%{transform:translateY(0);opacity:0.3}50%{transform:translateY(-8px);opacity:1}}
         @keyframes section-enter {from{opacity:0.5;transform:scale(0.975)}to{opacity:1;transform:scale(1)}}
