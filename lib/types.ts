@@ -19,6 +19,12 @@ export interface StudentData {
   rank: number
 }
 
+export interface FamilyWeekEval {
+  athletic: number
+  popular: number
+  cultural: number
+}
+
 export interface FamilyStats {
   name: string
   total: number
@@ -29,6 +35,16 @@ export interface FamilyStats {
   week1: number
   week2: number
   week3: number
+  w1Eval?: FamilyWeekEval
+  w2Eval?: FamilyWeekEval
+  w3Eval?: FamilyWeekEval
+}
+
+export interface StudentMemorization {
+  name: string
+  startSura: string
+  endSura: string
+  pages: number
 }
 
 export interface DashboardData {
@@ -38,6 +54,7 @@ export interface DashboardData {
   maxPossibleScore: number
   topStudent: StudentData | null
   topFamily: FamilyStats | null
+  memorizations: StudentMemorization[]
 }
 
 export interface FilterState {
