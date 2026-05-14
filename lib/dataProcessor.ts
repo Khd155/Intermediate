@@ -2,7 +2,7 @@ import { RawSheetRow, StudentData, FamilyStats, DashboardData, WeekEnabled } fro
 
 const sum = (arr: number[]): number => arr.reduce((a, b) => a + b, 0)
 
-const WEEK_MAX = { week1: 2700, week2: 2800, week3: 2800 }
+const WEEK_MAX = { week1: 2700, week2: 2900, week3: 2300 }
 
 function calcMax(weekEnabled: WeekEnabled): number {
   return (

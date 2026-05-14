@@ -10,7 +10,7 @@ const DELAY_STUDENT  = 1000   // ms between students in week/total view
 const DELAY_FAMILY   = 1800   // ms between families
 const PAUSE_DONE     = 2200   // ms pause after last item before auto-advance
 
-const WEEK_MAX: Record<number, number> = { 1: 2700, 2: 2800, 3: 2800 }
+const WEEK_MAX: Record<number, number> = { 1: 2700, 2: 2900, 3: 2300 }
 const WEEK_LABEL: Record<number, string> = { 1: 'الأول', 2: 'الثاني', 3: 'الثالث' }
 const WEEK_ICON: Record<number, string> = { 1: '🌱', 2: '🌿', 3: '🌾' }
 

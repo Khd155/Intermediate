@@ -6,7 +6,7 @@ import { DashboardData, StudentData, FamilyStats } from '@/lib/types'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const WEEK_MAX: Record<number, number> = { 1: 2700, 2: 2800, 3: 2800 }
+const WEEK_MAX: Record<number, number> = { 1: 2700, 2: 2900, 3: 2300 }
 const WEEK_LABEL: Record<number, string> = { 1: 'الأول', 2: 'الثاني', 3: 'الثالث' }
 
 // ─── Section types ────────────────────────────────────────────────────────────

@@ -3,7 +3,7 @@
 import { StudentData, WeekEnabled } from '@/lib/types'
 import { getScoreBg, getScoreLabel, getProgressBarColor } from '@/lib/dataProcessor'
 
-const WEEK_MAX = { 1: 2700, 2: 2800, 3: 2800 }
+const WEEK_MAX = { 1: 2700, 2: 2900, 3: 2300 }
 
 interface Props {
   weekNum: 1 | 2 | 3
