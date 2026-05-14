@@ -1,4 +1,4 @@
-import { RawSheetRow, WeekEnabled } from './types'
+import { RawSheetRow, WeekEnabled, StudentMemorization } from './types'
 import { buildDashboard } from './dataProcessor'
 
 const TOKEN_URL = 'https://oauth2.googleapis.com/token'
@@ -159,10 +159,10 @@ function parseWeekEnabled(cells: (string | number | boolean)[][][]): WeekEnabled
 
 // ─── Public entry point ────────────────────────────────────────────────────────
 
-const GID_HALAQA = 589208165
+const GID_HALAQA  = 589208165
 const GID_MEMBERS = 1287284119
-
 const GID_TAQYEEM = 41294986
+const GID_HIFZ    = 1945933238
 
 export async function getDashboardData() {
   const spreadsheetId = process.env.GOOGLE_SHEETS_ID!
@@ -173,6 +173,7 @@ export async function getDashboardData() {
     taq_muslim_w1, taq_bukhari_w1,
     taq_muslim_w2, taq_bukhari_w2,
     taq_muslim_w3, taq_bukhari_w3,
+    hifzValues,
   ] = await Promise.all([
     fetchByGid(spreadsheetId, GID_HALAQA, 'A1:AV200'),
     fetchByGid(spreadsheetId, GID_MEMBERS, 'A1:C200'),
@@ -185,37 +186,49 @@ export async function getDashboardData() {
     fetchByGid(spreadsheetId, GID_TAQYEEM, 'E9:E11'),
     fetchByGid(spreadsheetId, GID_TAQYEEM, 'B15:B17'),
     fetchByGid(spreadsheetId, GID_TAQYEEM, 'E15:E17'),
+    fetchByGid(spreadsheetId, GID_HIFZ, 'B4:E200'),
   ])
 
-  const parseColSum = (data: (string | number | boolean)[][]): number =>
-    data.reduce((acc, row) => {
-      const v = row[0]
-      return acc + (typeof v === 'number' ? v : !isNaN(Number(v)) ? Number(v) : 0)
-    }, 0)
+  const parseEval = (
+    data: (string | number | boolean)[][],
+    enabled: boolean
+  ): { athletic: number; popular: number; cultural: number } => {
+    if (!enabled) return { athletic: 0, popular: 0, cultural: 0 }
+    const getVal = (idx: number) => {
+      const v = data[idx]?.[0]
+      return typeof v === 'number' ? v : !isNaN(Number(v)) ? Number(v) : 0
+    }
+    return { athletic: getVal(0), popular: getVal(1), cultural: getVal(2) }
+  }
 
   const weekEnabled = parseWeekEnabled([w1Cell, w2Cell, w3Cell])
 
-  const muslim_w1  = weekEnabled.week1 ? parseColSum(taq_muslim_w1)  : 0
-  const muslim_w2  = weekEnabled.week2 ? parseColSum(taq_muslim_w2)  : 0
-  const muslim_w3  = weekEnabled.week3 ? parseColSum(taq_muslim_w3)  : 0
-  const bukhari_w1 = weekEnabled.week1 ? parseColSum(taq_bukhari_w1) : 0
-  const bukhari_w2 = weekEnabled.week2 ? parseColSum(taq_bukhari_w2) : 0
-  const bukhari_w3 = weekEnabled.week3 ? parseColSum(taq_bukhari_w3) : 0
-
-  const taqyeemScores: Record<string, number> = {
-    'أسرة الامام مسلم':   muslim_w1  + muslim_w2  + muslim_w3,
-    'أسرة الامام البخاري': bukhari_w1 + bukhari_w2 + bukhari_w3,
+  const taqyeemEvals = {
+    w1: {
+      'أسرة الامام مسلم':   parseEval(taq_muslim_w1,  weekEnabled.week1),
+      'أسرة الامام البخاري': parseEval(taq_bukhari_w1, weekEnabled.week1),
+    },
+    w2: {
+      'أسرة الامام مسلم':   parseEval(taq_muslim_w2,  weekEnabled.week2),
+      'أسرة الامام البخاري': parseEval(taq_bukhari_w2, weekEnabled.week2),
+    },
+    w3: {
+      'أسرة الامام مسلم':   parseEval(taq_muslim_w3,  weekEnabled.week3),
+      'أسرة الامام البخاري': parseEval(taq_bukhari_w3, weekEnabled.week3),
+    },
   }
 
-  const taqyeemByWeek = {
-    w1: { 'أسرة الامام مسلم': muslim_w1,  'أسرة الامام البخاري': bukhari_w1 },
-    w2: { 'أسرة الامام مسلم': muslim_w2,  'أسرة الامام البخاري': bukhari_w2 },
-    w3: { 'أسرة الامام مسلم': muslim_w3,  'أسرة الامام البخاري': bukhari_w3 },
-  }
+  const memorizations: StudentMemorization[] = hifzValues
+    .filter(row => row[0] && String(row[0]).trim())
+    .map(row => ({
+      name:      String(row[0]).trim(),
+      startSura: row[1] ? String(row[1]).trim() : '',
+      endSura:   row[2] ? String(row[2]).trim() : '',
+      pages:     typeof row[3] === 'number' ? row[3] : (!isNaN(Number(row[3])) ? Number(row[3]) : 0),
+    }))
 
-  const dataRows = rawToRows(mainValues.slice(7))
-  const rows = dataRows
+  const rows        = rawToRows(mainValues.slice(7))
   const membersRows = rawToRows(membersValues)
 
-  return buildDashboard(rows, membersRows, weekEnabled, taqyeemScores, taqyeemByWeek)
+  return buildDashboard(rows, membersRows, weekEnabled, memorizations, taqyeemEvals)
 }

@@ -1,4 +1,4 @@
-import { RawSheetRow, StudentData, FamilyStats, DashboardData, WeekEnabled } from './types'
+import { RawSheetRow, StudentData, FamilyStats, FamilyWeekEval, DashboardData, WeekEnabled, StudentMemorization } from './types'
 
 const sum = (arr: number[]): number => arr.reduce((a, b) => a + b, 0)
 
@@ -64,11 +64,16 @@ export function parseStudents(
   return students
 }
 
+type WeekEvalInput = { athletic: number; popular: number; cultural: number }
+
 export function computeFamilyStats(
   students: StudentData[],
   weekEnabled: WeekEnabled,
-  taqyeemScores: Record<string, number> = {},
-  taqyeemByWeek?: { w1: Record<string, number>; w2: Record<string, number>; w3: Record<string, number> }
+  taqyeemEvals?: {
+    w1: Record<string, WeekEvalInput>
+    w2: Record<string, WeekEvalInput>
+    w3: Record<string, WeekEvalInput>
+  }
 ): FamilyStats[] {
   const familyMap: Record<string, StudentData[]> = {}
 
@@ -79,18 +84,30 @@ export function computeFamilyStats(
 
   const maxPerStudent = calcMax(weekEnabled)
 
+  const evalSum = (e?: WeekEvalInput) => e ? e.athletic + e.popular + e.cultural : 0
+  const toFamilyWeekEval = (e?: WeekEvalInput): FamilyWeekEval | undefined =>
+    e ? { athletic: e.athletic, popular: e.popular, cultural: e.cultural } : undefined
+
   const stats: FamilyStats[] = Object.entries(familyMap).map(([name, members]) => {
     const studentsTotal = sum(members.map(m => m.total))
-    const taqyeem = taqyeemScores[name] ?? 0
-    const total = studentsTotal + taqyeem
+    const w1Eval = taqyeemEvals?.w1[name]
+    const w2Eval = taqyeemEvals?.w2[name]
+    const w3Eval = taqyeemEvals?.w3[name]
+
+    const week1 = sum(members.map(m => m.week1)) + evalSum(w1Eval)
+    const week2 = sum(members.map(m => m.week2)) + evalSum(w2Eval)
+    const week3 = sum(members.map(m => m.week3)) + evalSum(w3Eval)
+    const total = studentsTotal + evalSum(w1Eval) + evalSum(w2Eval) + evalSum(w3Eval)
     const average = members.length > 0 ? Math.round(studentsTotal / members.length) : 0
     const percentage = maxPerStudent > 0 ? Math.round((average / maxPerStudent) * 100) : 0
 
-    const week1 = sum(members.map(m => m.week1)) + (taqyeemByWeek?.w1[name] ?? 0)
-    const week2 = sum(members.map(m => m.week2)) + (taqyeemByWeek?.w2[name] ?? 0)
-    const week3 = sum(members.map(m => m.week3)) + (taqyeemByWeek?.w3[name] ?? 0)
-
-    return { name, total, average, count: members.length, rank: 0, percentage, week1, week2, week3 }
+    return {
+      name, total, average, count: members.length, rank: 0, percentage,
+      week1, week2, week3,
+      w1Eval: toFamilyWeekEval(w1Eval),
+      w2Eval: toFamilyWeekEval(w2Eval),
+      w3Eval: toFamilyWeekEval(w3Eval),
+    }
   })
 
   stats.sort((a, b) => b.total - a.total)
@@ -103,8 +120,12 @@ export function buildDashboard(
   rows: RawSheetRow[],
   membersRows: RawSheetRow[],
   weekEnabled: WeekEnabled,
-  taqyeemScores: Record<string, number> = {},
-  taqyeemByWeek?: { w1: Record<string, number>; w2: Record<string, number>; w3: Record<string, number> }
+  memorizations: StudentMemorization[] = [],
+  taqyeemEvals?: {
+    w1: Record<string, WeekEvalInput>
+    w2: Record<string, WeekEvalInput>
+    w3: Record<string, WeekEvalInput>
+  }
 ): DashboardData {
   const familyMap: Record<string, string> = {}
   if (membersRows.length > 0) {
@@ -128,7 +149,7 @@ export function buildDashboard(
   const allStudents = parseStudents(rows, familyMap, weekEnabled)
   const students = allStudents.filter(s => s.family !== 'غير محدد')
   students.forEach((s, i) => { s.rank = i + 1 })
-  const families = computeFamilyStats(students, weekEnabled, taqyeemScores, taqyeemByWeek)
+  const families = computeFamilyStats(students, weekEnabled, taqyeemEvals)
 
   return {
     students,
@@ -137,6 +158,7 @@ export function buildDashboard(
     maxPossibleScore,
     topStudent: students[0] || null,
     topFamily: families[0] || null,
+    memorizations,
   }
 }
 

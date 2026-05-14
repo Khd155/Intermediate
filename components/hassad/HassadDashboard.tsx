@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import Link from 'next/link'
-import { DashboardData, StudentData, FamilyStats, WeekEnabled } from '@/lib/types'
+import { DashboardData, StudentData, FamilyStats, FamilyWeekEval, WeekEnabled, StudentMemorization } from '@/lib/types'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -13,7 +13,7 @@ const WEEK_ICON: Record<number, string>  = { 1: '🌱', 2: '🌿', 3: '🌾' }
 
 // ─── Tab types ────────────────────────────────────────────────────────────────
 
-type Tab = 'w1' | 'w2' | 'w3' | 'total' | 'families' | 'final'
+type Tab = 'w1' | 'w2' | 'w3' | 'total' | 'families' | 'hifz' | 'final'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -344,14 +344,31 @@ function FamilyCardExpandable({ family, students, weekEnabled, isOpen, onToggle 
           {/* Per-week breakdown */}
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14, marginBottom: 16 }}>
             {([1, 2, 3] as const).filter(w => weekEnabled[`week${w}` as keyof WeekEnabled]).map(w => {
-              const score = w === 1 ? family.week1 : w === 2 ? family.week2 : family.week3
-              const max   = WEEK_MAX[w] * family.count
-              const pct   = max > 0 ? Math.round(score / max * 100) : 0
+              const score  = w === 1 ? family.week1 : w === 2 ? family.week2 : family.week3
+              const eval_  = w === 1 ? family.w1Eval : w === 2 ? family.w2Eval : family.w3Eval
+              const max    = WEEK_MAX[w] * family.count
+              const pct    = max > 0 ? Math.round(score / max * 100) : 0
               return (
-                <div key={w} style={{ flex: 1, minWidth: 90, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 11, color: '#475569', marginBottom: 4 }}>{WEEK_ICON[w]} أسبوع {WEEK_LABEL[w]}</div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: '#d4a017' }}>{score.toLocaleString('ar-SA')}</div>
-                  <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{pct}%</div>
+                <div key={w} style={{ flex: 1, minWidth: 110, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '10px 12px' }}>
+                  <div style={{ fontSize: 11, color: '#475569', marginBottom: 6, textAlign: 'center' }}>{WEEK_ICON[w]} أسبوع {WEEK_LABEL[w]}</div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: '#d4a017', textAlign: 'center' }}>{score.toLocaleString('ar-SA')}</div>
+                  <div style={{ fontSize: 11, color: '#64748b', marginTop: 2, textAlign: 'center' }}>{pct}%</div>
+                  {eval_ && (
+                    <div style={{ marginTop: 8, borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 6, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                      {[
+                        { label: '⚽ رياضي',   val: eval_.athletic },
+                        { label: '🎵 شعبيات',  val: eval_.popular  },
+                        { label: '🧠 ثقافي',   val: eval_.cultural },
+                      ].map(row => (
+                        <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10 }}>
+                          <span style={{ color: '#475569' }}>{row.label}</span>
+                          <span style={{ color: row.val > 0 ? '#a3e635' : '#334155', fontWeight: 600 }}>
+                            {row.val.toLocaleString('ar-SA')}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )
             })}
@@ -507,10 +524,83 @@ function FinalView({ data }: { data: DashboardData }) {
   )
 }
 
+// ─── Hifz card ────────────────────────────────────────────────────────────────
+
+function HifzCard({ mem, rank }: { mem: StudentMemorization; rank: number }) {
+  const m = medalEmoji(rank)
+  const top = rank <= 3
+  return (
+    <FadeIn>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 12,
+        background: top ? `rgba(99,102,241,${0.09 - (rank - 1) * 0.02})` : 'rgba(255,255,255,0.03)',
+        border: `1px solid rgba(99,102,241,${top ? 0.25 : 0.07})`,
+        borderRadius: 14, padding: '13px 16px', marginBottom: 8,
+      }}>
+        <div style={{
+          width: 42, height: 42, borderRadius: '50%', flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: m ? 22 : 14, fontWeight: 700,
+          background: m ? 'rgba(99,102,241,0.1)' : 'rgba(255,255,255,0.04)',
+          border: `1px solid rgba(99,102,241,${m ? 0.22 : 0.05})`,
+          color: rank === 1 ? '#fbbf24' : rank === 2 ? '#94a3b8' : rank === 3 ? '#fb923c' : '#475569',
+        }}>
+          {m ?? rank}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0', marginBottom: 4 }}>{mem.name}</div>
+          <div style={{ fontSize: 12, color: '#64748b' }}>
+            من <span style={{ color: '#a5b4fc' }}>{mem.startSura}</span>
+            {' '}إلى <span style={{ color: '#a5b4fc' }}>{mem.endSura}</span>
+          </div>
+        </div>
+        <div style={{ textAlign: 'left', flexShrink: 0 }}>
+          <div style={{ fontSize: 20, fontWeight: 900, color: '#818cf8' }}>{mem.pages}</div>
+          <div style={{ fontSize: 11, color: '#475569', marginTop: 1 }}>صفحة</div>
+        </div>
+      </div>
+    </FadeIn>
+  )
+}
+
+// ─── Hifz view ────────────────────────────────────────────────────────────────
+
+function HifzView({ memorizations }: { memorizations: StudentMemorization[] }) {
+  const sorted = useMemo(() => [...memorizations].sort((a, b) => b.pages - a.pages), [memorizations])
+  const totalPages = useMemo(() => sorted.reduce((s, m) => s + m.pages, 0), [sorted])
+
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div style={{
+        padding: '14px 20px', flexShrink: 0,
+        background: 'rgba(99,102,241,0.04)', borderBottom: '1px solid rgba(99,102,241,0.1)',
+        display: 'flex', alignItems: 'center', gap: 12,
+      }}>
+        <span style={{ fontSize: 24 }}>📖</span>
+        <div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: '#f0f0e0' }}>بيانات الحفظ</div>
+          <div style={{ fontSize: 12, color: '#64748b' }}>
+            {sorted.length} طالب · {totalPages.toLocaleString('ar-SA')} صفحة إجمالاً
+          </div>
+        </div>
+      </div>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+        {sorted.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '60px 20px', color: '#334155', fontSize: 14 }}>
+            لا توجد بيانات حفظ
+          </div>
+        ) : (
+          sorted.map((m, i) => <HifzCard key={m.name} mem={m} rank={i + 1} />)
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function HassadDashboard({ data }: { data: DashboardData }) {
-  const { students, families, weekEnabled, maxPossibleScore } = data
+  const { students, families, weekEnabled, maxPossibleScore, memorizations } = data
 
   // Active tab
   const defaultTab = (): Tab => weekEnabled.week1 ? 'w1' : weekEnabled.week2 ? 'w2' : weekEnabled.week3 ? 'w3' : 'total'
@@ -563,6 +653,7 @@ export function HassadDashboard({ data }: { data: DashboardData }) {
     ...(weekEnabled.week3 ? [{ id: 'w3' as Tab, label: 'أسبوع ٣', icon: '🌾' }] : []),
     { id: 'total',    label: 'الإجمالي', icon: '🏅' },
     { id: 'families', label: 'الأسر',    icon: '👨‍👩‍👦' },
+    { id: 'hifz',     label: 'الحفظ',    icon: '📖' },
     { id: 'final',    label: 'الختام',   icon: '🏆' },
   ]
 
@@ -656,6 +747,9 @@ export function HassadDashboard({ data }: { data: DashboardData }) {
         )}
         {tab === 'families' && (
           <FamiliesView families={families} students={students} weekEnabled={weekEnabled} />
+        )}
+        {tab === 'hifz' && (
+          <HifzView memorizations={memorizations} />
         )}
         {tab === 'final' && (
           <FinalView data={data} />
