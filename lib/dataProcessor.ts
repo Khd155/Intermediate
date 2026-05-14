@@ -2,7 +2,7 @@ import { RawSheetRow, StudentData, FamilyStats, DashboardData, WeekEnabled } fro
 
 const sum = (arr: number[]): number => arr.reduce((a, b) => a + b, 0)
 
-const WEEK_MAX = { week1: 2700, week2: 2800, week3: 2800 }
+const WEEK_MAX = { week1: 2700, week2: 2900, week3: 2300 }
 
 function calcMax(weekEnabled: WeekEnabled): number {
   return (
@@ -67,7 +67,8 @@ export function parseStudents(
 export function computeFamilyStats(
   students: StudentData[],
   weekEnabled: WeekEnabled,
-  taqyeemScores: Record<string, number> = {}
+  taqyeemScores: Record<string, number> = {},
+  taqyeemByWeek?: { w1: Record<string, number>; w2: Record<string, number>; w3: Record<string, number> }
 ): FamilyStats[] {
   const familyMap: Record<string, StudentData[]> = {}
 
@@ -84,7 +85,12 @@ export function computeFamilyStats(
     const total = studentsTotal + taqyeem
     const average = members.length > 0 ? Math.round(studentsTotal / members.length) : 0
     const percentage = maxPerStudent > 0 ? Math.round((average / maxPerStudent) * 100) : 0
-    return { name, total, average, count: members.length, rank: 0, percentage }
+
+    const week1 = sum(members.map(m => m.week1)) + (taqyeemByWeek?.w1[name] ?? 0)
+    const week2 = sum(members.map(m => m.week2)) + (taqyeemByWeek?.w2[name] ?? 0)
+    const week3 = sum(members.map(m => m.week3)) + (taqyeemByWeek?.w3[name] ?? 0)
+
+    return { name, total, average, count: members.length, rank: 0, percentage, week1, week2, week3 }
   })
 
   stats.sort((a, b) => b.total - a.total)
@@ -97,7 +103,8 @@ export function buildDashboard(
   rows: RawSheetRow[],
   membersRows: RawSheetRow[],
   weekEnabled: WeekEnabled,
-  taqyeemScores: Record<string, number> = {}
+  taqyeemScores: Record<string, number> = {},
+  taqyeemByWeek?: { w1: Record<string, number>; w2: Record<string, number>; w3: Record<string, number> }
 ): DashboardData {
   const familyMap: Record<string, string> = {}
   if (membersRows.length > 0) {
@@ -121,7 +128,7 @@ export function buildDashboard(
   const allStudents = parseStudents(rows, familyMap, weekEnabled)
   const students = allStudents.filter(s => s.family !== 'غير محدد')
   students.forEach((s, i) => { s.rank = i + 1 })
-  const families = computeFamilyStats(students, weekEnabled, taqyeemScores)
+  const families = computeFamilyStats(students, weekEnabled, taqyeemScores, taqyeemByWeek)
 
   return {
     students,

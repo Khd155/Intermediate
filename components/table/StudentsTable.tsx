@@ -13,7 +13,7 @@ interface StudentsTableProps {
 
 type SortKey = 'rank' | 'name' | 'family' | 'week1' | 'week2' | 'week3' | 'total' | 'percentage'
 
-const WEEK_MAX = { week1: 2700, week2: 2800, week3: 2800 }
+const WEEK_MAX = { week1: 2700, week2: 2900, week3: 2300 }
 
 function weekPct(score: number, weekKey: keyof typeof WEEK_MAX): number {
   return WEEK_MAX[weekKey] > 0 ? Math.min(100, Math.round((score / WEEK_MAX[weekKey]) * 100)) : 0

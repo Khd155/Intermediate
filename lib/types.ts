@@ -26,6 +26,9 @@ export interface FamilyStats {
   count: number
   rank: number
   percentage: number
+  week1: number
+  week2: number
+  week3: number
 }
 
 export interface DashboardData {
