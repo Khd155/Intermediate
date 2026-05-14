@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import Link from 'next/link'
-import { DashboardData, StudentData, FamilyStats, FamilyWeekEval, WeekEnabled, StudentMemorization } from '@/lib/types'
+import { DashboardData, StudentData, FamilyStats, WeekEnabled, StudentMemorization } from '@/lib/types'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -293,141 +293,233 @@ function TotalView({ students, maxScore }: { students: StudentData[]; maxScore: 
   )
 }
 
-// ─── Family card (expandable) ─────────────────────────────────────────────────
+// ─── Family week card ─────────────────────────────────────────────────────────
 
-function FamilyCardExpandable({ family, students, weekEnabled, isOpen, onToggle }: {
-  family: FamilyStats
-  students: StudentData[]
-  weekEnabled: WeekEnabled
-  isOpen: boolean
-  onToggle: () => void
+function FamilyWeekCard({ family, weekNum, rank }: {
+  family: FamilyStats; weekNum: 1 | 2 | 3; rank: number
 }) {
-  const members = useMemo(() =>
-    students.filter(s => s.family === family.name).sort((a, b) => b.total - a.total),
-    [students, family.name]
-  )
-  const m = medalEmoji(family.rank)
+  const weekScore = weekNum === 1 ? family.week1 : weekNum === 2 ? family.week2 : family.week3
+  const eval_     = weekNum === 1 ? family.w1Eval : weekNum === 2 ? family.w2Eval : family.w3Eval
+  const m         = medalEmoji(rank)
+  const isTop     = rank <= 3
+
+  const evalRows = eval_ ? [
+    { label: 'رياضي ⚽',   val: eval_.athletic, color: '#38bdf8' },
+    { label: 'شعبيات 🎵',  val: eval_.popular,  color: '#fb923c' },
+    { label: 'ثقافي 🧠',   val: eval_.cultural, color: '#a78bfa' },
+  ] : []
 
   return (
-    <div style={{
-      background: family.rank <= 3 ? 'rgba(212,160,23,0.06)' : 'rgba(255,255,255,0.03)',
-      border: `1px solid rgba(212,160,23,${family.rank <= 3 ? 0.22 : 0.07})`,
-      borderRadius: 14, marginBottom: 12, overflow: 'hidden',
-    }}>
-      {/* Header - clickable */}
-      <button onClick={onToggle} style={{
-        width: '100%', display: 'flex', alignItems: 'center', gap: 14,
-        padding: '16px 20px', background: 'none', border: 'none', cursor: 'pointer',
-        color: 'inherit', fontFamily: 'inherit', textAlign: 'right',
+    <FadeIn>
+      <div style={{
+        background: isTop ? `rgba(212,160,23,${0.08 - (rank - 1) * 0.02})` : 'rgba(255,255,255,0.03)',
+        border: `1px solid rgba(212,160,23,${isTop ? 0.25 : 0.07})`,
+        borderRadius: 14, padding: '16px 20px', marginBottom: 10,
+        display: 'flex', alignItems: 'flex-start', gap: 14,
       }}>
-        <span style={{ fontSize: m ? 26 : 16, flexShrink: 0 }}>{m ?? family.rank}</span>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 16, fontWeight: 800, color: '#f0f0e0' }}>{family.name}</div>
-          <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-            {family.count} طالب · متوسط {family.average.toLocaleString('ar-SA')}
+        {/* Rank badge */}
+        <div style={{
+          width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: m ? 22 : 15, fontWeight: 700,
+          background: m ? 'rgba(212,160,23,0.1)' : 'rgba(255,255,255,0.04)',
+          border: `1px solid rgba(212,160,23,${m ? 0.22 : 0.05})`,
+          color: rank === 1 ? '#fbbf24' : rank === 2 ? '#94a3b8' : rank === 3 ? '#fb923c' : '#475569',
+        }}>
+          {m ?? rank}
+        </div>
+
+        {/* Content */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: '#f0f0e0', marginBottom: 10 }}>{family.name}</div>
+
+          {/* Score + eval grid */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {/* Total for this week */}
+            <div style={{
+              background: 'rgba(212,160,23,0.08)', border: '1px solid rgba(212,160,23,0.2)',
+              borderRadius: 10, padding: '8px 14px', minWidth: 100, textAlign: 'center',
+            }}>
+              <div style={{ fontSize: 10, color: '#d4a017', marginBottom: 3, letterSpacing: 1 }}>مجموع الأسبوع</div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: '#f0c040' }}>
+                {weekScore.toLocaleString('ar-SA')}
+              </div>
+            </div>
+
+            {/* Eval breakdown */}
+            {evalRows.map(row => (
+              <div key={row.label} style={{
+                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
+                borderRadius: 10, padding: '8px 14px', minWidth: 85, textAlign: 'center',
+              }}>
+                <div style={{ fontSize: 10, color: '#64748b', marginBottom: 3 }}>{row.label}</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: row.val > 0 ? row.color : '#334155' }}>
+                  {row.val.toLocaleString('ar-SA')}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
+      </div>
+    </FadeIn>
+  )
+}
+
+// ─── Family total card ────────────────────────────────────────────────────────
+
+function FamilyTotalCard({ family, rank }: { family: FamilyStats; rank: number }) {
+  const m     = medalEmoji(rank)
+  const isTop = rank <= 3
+
+  return (
+    <FadeIn>
+      <div style={{
+        background: isTop ? `rgba(212,160,23,${0.09 - (rank - 1) * 0.02})` : 'rgba(255,255,255,0.03)',
+        border: `1px solid rgba(212,160,23,${isTop ? 0.28 : 0.07})`,
+        borderRadius: 14, padding: '16px 20px', marginBottom: 10,
+        display: 'flex', alignItems: 'center', gap: 14,
+      }}>
+        <div style={{
+          width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: m ? 22 : 15, fontWeight: 700,
+          background: m ? 'rgba(212,160,23,0.12)' : 'rgba(255,255,255,0.04)',
+          border: `1px solid rgba(212,160,23,${m ? 0.25 : 0.05})`,
+          color: rank === 1 ? '#fbbf24' : rank === 2 ? '#94a3b8' : rank === 3 ? '#fb923c' : '#475569',
+        }}>
+          {m ?? rank}
+        </div>
+
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: '#f0f0e0', marginBottom: 6 }}>{family.name}</div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {[
+              { label: 'أسبوع ١ 🌱', val: family.week1 },
+              { label: 'أسبوع ٢ 🌿', val: family.week2 },
+              { label: 'أسبوع ٣ 🌾', val: family.week3 },
+            ].map(w => w.val > 0 && (
+              <span key={w.label} style={{ fontSize: 11, color: '#64748b' }}>
+                {w.label}: <span style={{ color: '#94a3b8', fontWeight: 600 }}>{w.val.toLocaleString('ar-SA')}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+
         <div style={{ textAlign: 'left', flexShrink: 0 }}>
-          <div style={{ fontSize: 20, fontWeight: 900, color: '#f0c040' }}>
+          <div style={{ fontSize: 24, fontWeight: 900, color: rank === 1 ? '#fbbf24' : '#f0c040' }}>
             {family.total.toLocaleString('ar-SA')}
           </div>
-          <div style={{ fontSize: 11, color: '#64748b' }}>إجمالي</div>
+          <div style={{ fontSize: 11, color: '#64748b', textAlign: 'center', marginTop: 2 }}>الإجمالي</div>
         </div>
-        <span style={{ color: '#475569', fontSize: 12, flexShrink: 0, marginRight: 4, transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'none' }}>
-          ▼
-        </span>
-      </button>
-
-      {/* Expanded content */}
-      {isOpen && (
-        <div style={{ padding: '0 20px 20px', borderTop: '1px solid rgba(212,160,23,0.08)' }}>
-          {/* Per-week breakdown */}
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14, marginBottom: 16 }}>
-            {([1, 2, 3] as const).filter(w => weekEnabled[`week${w}` as keyof WeekEnabled]).map(w => {
-              const score  = w === 1 ? family.week1 : w === 2 ? family.week2 : family.week3
-              const eval_  = w === 1 ? family.w1Eval : w === 2 ? family.w2Eval : family.w3Eval
-              const max    = WEEK_MAX[w] * family.count
-              const pct    = max > 0 ? Math.round(score / max * 100) : 0
-              return (
-                <div key={w} style={{ flex: 1, minWidth: 110, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '10px 12px' }}>
-                  <div style={{ fontSize: 11, color: '#475569', marginBottom: 6, textAlign: 'center' }}>{WEEK_ICON[w]} أسبوع {WEEK_LABEL[w]}</div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: '#d4a017', textAlign: 'center' }}>{score.toLocaleString('ar-SA')}</div>
-                  <div style={{ fontSize: 11, color: '#64748b', marginTop: 2, textAlign: 'center' }}>{pct}%</div>
-                  {eval_ && (
-                    <div style={{ marginTop: 8, borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 6, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                      {[
-                        { label: '⚽ رياضي',   val: eval_.athletic },
-                        { label: '🎵 شعبيات',  val: eval_.popular  },
-                        { label: '🧠 ثقافي',   val: eval_.cultural },
-                      ].map(row => (
-                        <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10 }}>
-                          <span style={{ color: '#475569' }}>{row.label}</span>
-                          <span style={{ color: row.val > 0 ? '#a3e635' : '#334155', fontWeight: 600 }}>
-                            {row.val.toLocaleString('ar-SA')}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-
-          {/* Member list */}
-          <div style={{ fontSize: 11, color: '#475569', marginBottom: 8, letterSpacing: 1 }}>أعضاء الأسرة</div>
-          {members.map((s, i) => (
-            <div key={s.name} style={{
-              display: 'flex', alignItems: 'center', gap: 10,
-              padding: '8px 12px', background: 'rgba(255,255,255,0.03)',
-              borderRadius: 8, marginBottom: 6,
-            }}>
-              <span style={{ fontSize: 12, color: '#475569', width: 20, textAlign: 'center', flexShrink: 0 }}>
-                {medalEmoji(i + 1) ?? (i + 1)}
-              </span>
-              <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: '#e2e8f0' }}>{s.name}</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#f0c040' }}>{s.total.toLocaleString('ar-SA')}</span>
-              <span style={{ fontSize: 11, color: '#64748b' }}>{s.percentage}%</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+      </div>
+    </FadeIn>
   )
 }
 
 // ─── Families view ────────────────────────────────────────────────────────────
 
-function FamiliesView({ families, students, weekEnabled }: {
-  families: FamilyStats[]; students: StudentData[]; weekEnabled: WeekEnabled
+type FamilyTab = 'fw1' | 'fw2' | 'fw3' | 'ftotal'
+
+function FamiliesView({ families, weekEnabled }: {
+  families: FamilyStats[]; weekEnabled: WeekEnabled
 }) {
-  const [openFamily, setOpenFamily] = useState<string | null>(null)
-  const sorted = useMemo(() => [...families].sort((a, b) => b.total - a.total), [families])
+  const firstEnabled: FamilyTab = weekEnabled.week1 ? 'fw1' : weekEnabled.week2 ? 'fw2' : weekEnabled.week3 ? 'fw3' : 'ftotal'
+  const [activeTab, setActiveTab] = useState<FamilyTab>(firstEnabled)
+
+  const familyTabs: { id: FamilyTab; label: string; icon: string }[] = [
+    ...(weekEnabled.week1 ? [{ id: 'fw1' as FamilyTab, label: 'أسبوع ١', icon: '🌱' }] : []),
+    ...(weekEnabled.week2 ? [{ id: 'fw2' as FamilyTab, label: 'أسبوع ٢', icon: '🌿' }] : []),
+    ...(weekEnabled.week3 ? [{ id: 'fw3' as FamilyTab, label: 'أسبوع ٣', icon: '🌾' }] : []),
+    { id: 'ftotal', label: 'الإجمالي', icon: '🏆' },
+  ]
+
+  const sortedByTotal = useMemo(() => [...families].sort((a, b) => b.total - a.total), [families])
+
+  const getSortedByWeek = (w: 1 | 2 | 3) =>
+    [...families].sort((a, b) =>
+      (w === 1 ? b.week1 - a.week1 : w === 2 ? b.week2 - a.week2 : b.week3 - a.week3)
+    )
+
+  const weekNum: 1 | 2 | 3 | null = activeTab === 'fw1' ? 1 : activeTab === 'fw2' ? 2 : activeTab === 'fw3' ? 3 : null
+  const weekSorted = weekNum ? getSortedByWeek(weekNum) : []
+
+  const weekLabel = activeTab === 'fw1' ? 'الأول' : activeTab === 'fw2' ? 'الثاني' : activeTab === 'fw3' ? 'الثالث' : ''
+  const weekIcon  = activeTab === 'fw1' ? '🌱' : activeTab === 'fw2' ? '🌿' : activeTab === 'fw3' ? '🌾' : '🏆'
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* Header */}
       <div style={{
-        padding: '14px 20px', flexShrink: 0,
+        padding: '12px 20px', flexShrink: 0,
         background: 'rgba(212,160,23,0.04)', borderBottom: '1px solid rgba(212,160,23,0.08)',
-        display: 'flex', alignItems: 'center', gap: 12,
+        display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
       }}>
-        <span style={{ fontSize: 24 }}>👨‍👩‍👦</span>
-        <div>
-          <div style={{ fontSize: 16, fontWeight: 800, color: '#f0f0e0' }}>ملخص الأسر</div>
-          <div style={{ fontSize: 12, color: '#64748b' }}>اضغط على أي أسرة لعرض تفاصيلها</div>
+        <span style={{ fontSize: 22 }}>👨‍👩‍👦</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 15, fontWeight: 800, color: '#f0f0e0' }}>حصاد الأسر</div>
+          <div style={{ fontSize: 11, color: '#64748b' }}>
+            {activeTab === 'ftotal' ? 'المجموع النهائي لجميع الأسابيع' : `نتائج الأسبوع ${weekLabel}`}
+          </div>
+        </div>
+        {/* Sub-tabs */}
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+          {familyTabs.map(t => (
+            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '5px 13px', borderRadius: 8, border: 'none', cursor: 'pointer',
+              background: activeTab === t.id ? 'rgba(212,160,23,0.18)' : 'rgba(255,255,255,0.04)',
+              color: activeTab === t.id ? '#f0c040' : '#475569',
+              fontWeight: activeTab === t.id ? 700 : 400,
+              fontSize: 12, fontFamily: 'inherit',
+              transition: 'all 0.2s',
+            }}>
+              <span>{t.icon}</span>
+              <span>{t.label}</span>
+            </button>
+          ))}
         </div>
       </div>
+
+      {/* Content */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
-        {sorted.map(f => (
-          <FamilyCardExpandable
-            key={f.name}
-            family={f}
-            students={students}
-            weekEnabled={weekEnabled}
-            isOpen={openFamily === f.name}
-            onToggle={() => setOpenFamily(o => o === f.name ? null : f.name)}
-          />
-        ))}
+        {weekNum !== null && (
+          <>
+            <div style={{ fontSize: 11, color: '#475569', marginBottom: 12, letterSpacing: 1 }}>
+              {weekIcon} ترتيب الأسر — الأسبوع {weekLabel}
+            </div>
+            {weekSorted.map((f, i) => (
+              <FamilyWeekCard key={f.name} family={f} weekNum={weekNum} rank={i + 1} />
+            ))}
+          </>
+        )}
+
+        {activeTab === 'ftotal' && (
+          <>
+            <div style={{ fontSize: 11, color: '#475569', marginBottom: 12, letterSpacing: 1 }}>
+              🏆 الترتيب النهائي — مجموع جميع الأسابيع
+            </div>
+            {/* Winner banner */}
+            {sortedByTotal[0] && (
+              <FadeIn>
+                <div style={{
+                  background: 'rgba(212,160,23,0.1)', border: '2px solid rgba(212,160,23,0.35)',
+                  borderRadius: 14, padding: '18px 24px', marginBottom: 16, textAlign: 'center',
+                }}>
+                  <div style={{ fontSize: 11, color: '#d4a017', letterSpacing: 2, marginBottom: 6 }}>🏆 الفائزة بالحصاد 🏆</div>
+                  <div style={{ fontSize: 26, fontWeight: 900, color: '#fbbf24' }}>
+                    {sortedByTotal[0].name}
+                  </div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#f0c040', marginTop: 6 }}>
+                    {sortedByTotal[0].total.toLocaleString('ar-SA')} درجة
+                  </div>
+                </div>
+              </FadeIn>
+            )}
+            {sortedByTotal.map((f, i) => (
+              <FamilyTotalCard key={f.name} family={f} rank={i + 1} />
+            ))}
+          </>
+        )}
       </div>
     </div>
   )
@@ -746,7 +838,7 @@ export function HassadDashboard({ data }: { data: DashboardData }) {
           <TotalView students={students} maxScore={maxPossibleScore} />
         )}
         {tab === 'families' && (
-          <FamiliesView families={families} students={students} weekEnabled={weekEnabled} />
+          <FamiliesView families={families} weekEnabled={weekEnabled} />
         )}
         {tab === 'hifz' && (
           <HifzView memorizations={memorizations} />
