@@ -534,20 +534,22 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
     [memorizations]
   )
   const totalPages = useMemo(() => sorted.reduce((s, m) => s + m.pages, 0), [sorted])
+  const n = sorted.length
 
-  // Scroll down with each new reveal
+  // During reveal: scroll down to show each new card
   const sentinelRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
+    if (phase === 'done') return
     sentinelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
-  }, [revealed])
+  }, [revealed, phase])
 
-  // When all revealed, scroll back up so top-3 are visible at the top
-  const top3Ref = useRef<HTMLDivElement>(null)
+  // When done: flip list order (rank 1 at top) then scroll container to top
+  const containerRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (phase !== 'done') return
     const t = setTimeout(() => {
-      top3Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 800)
+      containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+    }, 600)
     return () => clearTimeout(t)
   }, [phase])
 
@@ -557,7 +559,11 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
       onStart={onStart} />
   )
 
-  const n = sorted.length
+  // While revealing: ascending (rank N first → rank 1 last at bottom)
+  // When done: descending (rank 1 at top → rank N at bottom)
+  const displayItems = phase === 'done'
+    ? [...sorted].reverse()
+    : sorted.slice(0, revealed)
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -574,14 +580,15 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
         {phase === 'done' && <span style={{ fontSize: 18 }}>🏅</span>}
       </div>
 
-      {/* Normal column — items top→bottom, newest at bottom, sentinel scrolled into view */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
-        {sorted.slice(0, revealed).map((m, i) => {
-          const rank     = n - i           // N → 1 (first revealed = rank N, last = rank 1)
-          const isNew    = i === revealed - 1
-          const isGold   = i === n - 1    // rank 1
-          const isSilver = i === n - 2    // rank 2
-          const isBronze = i === n - 3    // rank 3
+      <div ref={containerRef} style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+        {displayItems.map((m, i) => {
+          // Rank is always based on position in original sorted (ascending) array
+          const originalIdx = sorted.indexOf(m)
+          const rank     = n - originalIdx    // sorted[0]=rankN … sorted[n-1]=rank1
+          const isNew    = phase !== 'done' && i === revealed - 1
+          const isGold   = rank === 1
+          const isSilver = rank === 2
+          const isBronze = rank === 3
           const isPodium = isGold || isSilver || isBronze
 
           const medalEmoji   = isGold ? '🥇' : isSilver ? '🥈' : isBronze ? '🥉' : null
@@ -590,10 +597,8 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
           const podiumBorder = isGold ? 'rgba(212,160,23,0.42)' : isSilver ? 'rgba(148,163,184,0.35)' : isBronze ? 'rgba(251,146,60,0.35)' : 'rgba(99,102,241,0.18)'
           const cardBg       = isGold ? 'rgba(212,160,23,0.14)' : isSilver ? 'rgba(148,163,184,0.07)' : isBronze ? 'rgba(251,146,60,0.07)' : 'rgba(99,102,241,0.04)'
 
-          const isTop3Start = i === Math.max(0, n - 3)
-
           return (
-            <div key={m.name} ref={isTop3Start ? top3Ref : undefined} style={{
+            <div key={m.name} style={{
               display: 'flex', alignItems: 'center', gap: 14,
               background: cardBg,
               border: `${isPodium ? '2px' : '1px'} solid ${podiumBorder}`,
@@ -645,7 +650,6 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
             </div>
           )
         })}
-        {/* sentinel: scrolled into view after each reveal, always at the bottom */}
         <div ref={sentinelRef} style={{ height: 1 }} />
       </div>
     </div>
