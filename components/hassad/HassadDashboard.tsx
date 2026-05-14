@@ -536,19 +536,20 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
   const totalPages = useMemo(() => sorted.reduce((s, m) => s + m.pages, 0), [sorted])
   const n = sorted.length
 
-  // During reveal: scroll down to show each new card
+  // During reveal: scroll down to keep newest card in view
   const sentinelRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (phase === 'done') return
     sentinelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
   }, [revealed, phase])
 
-  // When done: flip list order (rank 1 at top) then scroll container to top
-  const containerRef = useRef<HTMLDivElement>(null)
+  // When done: scroll UP so rank-4 is at the top of viewport,
+  // letting rank 3 → 2 → 1 follow naturally below it
+  const rank4Ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (phase !== 'done') return
     const t = setTimeout(() => {
-      containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+      rank4Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 600)
     return () => clearTimeout(t)
   }, [phase])
@@ -558,12 +559,6 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
       subtitle={`${sorted.length} طالب · ${totalPages.toLocaleString('ar-SA')} صفحة`}
       onStart={onStart} />
   )
-
-  // While revealing: ascending (rank N first → rank 1 last at bottom)
-  // When done: descending (rank 1 at top → rank N at bottom)
-  const displayItems = phase === 'done'
-    ? [...sorted].reverse()
-    : sorted.slice(0, revealed)
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -580,15 +575,16 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
         {phase === 'done' && <span style={{ fontSize: 18 }}>🏅</span>}
       </div>
 
-      <div ref={containerRef} style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
-        {displayItems.map((m, i) => {
-          // Rank is always based on position in original sorted (ascending) array
-          const originalIdx = sorted.indexOf(m)
-          const rank     = n - originalIdx    // sorted[0]=rankN … sorted[n-1]=rank1
+      {/* Always ascending order: rank N at top → rank 1 at bottom.
+          On done, scroll so rank 4 is at viewport top, 3→2→1 follow below. */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+        {sorted.slice(0, revealed).map((m, i) => {
+          const rank     = n - i              // N … 1
           const isNew    = phase !== 'done' && i === revealed - 1
-          const isGold   = rank === 1
-          const isSilver = rank === 2
-          const isBronze = rank === 3
+          const isGold   = i === n - 1       // rank 1
+          const isSilver = i === n - 2       // rank 2
+          const isBronze = i === n - 3       // rank 3
+          const isRank4  = i === n - 4       // rank 4 — scroll target when done
           const isPodium = isGold || isSilver || isBronze
 
           const medalEmoji   = isGold ? '🥇' : isSilver ? '🥈' : isBronze ? '🥉' : null
@@ -598,15 +594,17 @@ function HifzSection({ memorizations, phase, revealed, onStart }: {
           const cardBg       = isGold ? 'rgba(212,160,23,0.14)' : isSilver ? 'rgba(148,163,184,0.07)' : isBronze ? 'rgba(251,146,60,0.07)' : 'rgba(99,102,241,0.04)'
 
           return (
-            <div key={m.name} style={{
-              display: 'flex', alignItems: 'center', gap: 14,
-              background: cardBg,
-              border: `${isPodium ? '2px' : '1px'} solid ${podiumBorder}`,
-              borderRadius: 14, padding: '14px 18px', marginBottom: 10,
-              animation: isNew
-                ? 'hifz-card-in 0.55s cubic-bezier(0.34,1.56,0.64,1) both'
-                : (isGold && phase === 'done' ? 'champ-glow 2s ease-in-out infinite' : 'none'),
-            }}>
+            <div key={m.name}
+              ref={isRank4 ? rank4Ref : n < 4 && i === 0 ? rank4Ref : undefined}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 14,
+                background: cardBg,
+                border: `${isPodium ? '2px' : '1px'} solid ${podiumBorder}`,
+                borderRadius: 14, padding: '14px 18px', marginBottom: 10,
+                animation: isNew
+                  ? 'hifz-card-in 0.55s cubic-bezier(0.34,1.56,0.64,1) both'
+                  : (isGold && phase === 'done' ? 'champ-glow 2s ease-in-out infinite' : 'none'),
+              }}>
               <div style={{
                 width: isPodium ? 44 : 38, height: isPodium ? 44 : 38,
                 borderRadius: '50%', flexShrink: 0,
