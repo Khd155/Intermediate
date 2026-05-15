@@ -1,9 +1,5 @@
-import { getDashboardData } from '@/lib/sheetsApi'
-import { HassadDashboard } from '@/components/hassad/HassadDashboard'
+import { HassadLoader } from '@/components/hassad/HassadLoader'
 
-export const dynamic = 'force-dynamic'
-
-export default async function HassadPage() {
-  const data = await getDashboardData()
-  return <HassadDashboard data={data} />
+export default function HassadPage() {
+  return <HassadLoader />
 }
