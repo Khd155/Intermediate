@@ -1,4 +1,4 @@
-import { RawSheetRow, WeekEnabled, StudentMemorization } from './types'
+import { RawSheetRow, WeekEnabled, StudentMemorization, DashboardData } from './types'
 import { buildDashboard } from './dataProcessor'
 
 const TOKEN_URL = 'https://oauth2.googleapis.com/token'
@@ -8,6 +8,11 @@ const SCOPES = 'https://www.googleapis.com/auth/spreadsheets.readonly'
 // ─── Token cache ───────────────────────────────────────────────────────────────
 
 let cachedToken: { value: string; expiresAt: number } | null = null
+
+// ─── Dashboard data cache (30s TTL) ───────────────────────────────────────────
+
+let dashboardCache: { data: DashboardData; expiresAt: number } | null = null
+const CACHE_TTL_MS = 30_000
 
 async function getAccessToken(): Promise<string> {
   const now = Math.floor(Date.now() / 1000)
@@ -164,7 +169,10 @@ const GID_MEMBERS = 1287284119
 const GID_TAQYEEM = 41294986
 const GID_HIFZ    = 1945933238
 
-export async function getDashboardData() {
+export async function getDashboardData(): Promise<DashboardData> {
+  const now = Date.now()
+  if (dashboardCache && dashboardCache.expiresAt > now) return dashboardCache.data
+
   const spreadsheetId = process.env.GOOGLE_SHEETS_ID!
   if (!spreadsheetId) throw new Error('Missing GOOGLE_SHEETS_ID')
 
@@ -230,5 +238,7 @@ export async function getDashboardData() {
   const rows        = rawToRows(mainValues.slice(7))
   const membersRows = rawToRows(membersValues)
 
-  return buildDashboard(rows, membersRows, weekEnabled, memorizations, taqyeemEvals)
+  const data = buildDashboard(rows, membersRows, weekEnabled, memorizations, taqyeemEvals)
+  dashboardCache = { data, expiresAt: Date.now() + CACHE_TTL_MS }
+  return data
 }
