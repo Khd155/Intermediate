@@ -9,10 +9,10 @@ const SCOPES = 'https://www.googleapis.com/auth/spreadsheets.readonly'
 
 let cachedToken: { value: string; expiresAt: number } | null = null
 
-// ─── Dashboard data cache (30s TTL) ───────────────────────────────────────────
+// ─── Dashboard data cache (10s TTL, fallback on 429) ─────────────────────────
 
 let dashboardCache: { data: DashboardData; expiresAt: number } | null = null
-const CACHE_TTL_MS = 30_000
+const CACHE_TTL_MS = 10_000
 
 async function getAccessToken(): Promise<string> {
   const now = Math.floor(Date.now() / 1000)
@@ -110,7 +110,9 @@ async function fetchByGid(
   if (!res.ok) {
     const body = await res.text()
     console.error('Sheets error:', body)
-    throw new Error(`Sheets API error [gid:${gid} ${cellRange}]: ${res.status}`)
+    const err = new Error(`Sheets API error [gid:${gid} ${cellRange}]: ${res.status}`) as Error & { status: number }
+    err.status = res.status
+    throw err
   }
 
   const data = await res.json()
@@ -175,6 +177,20 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   const spreadsheetId = process.env.GOOGLE_SHEETS_ID!
   if (!spreadsheetId) throw new Error('Missing GOOGLE_SHEETS_ID')
+
+  try {
+    return await fetchAndBuild(spreadsheetId)
+  } catch (err: unknown) {
+    if (dashboardCache && (err as { status?: number }).status === 429) {
+      // Rate limited — return last known data instead of crashing
+      dashboardCache.expiresAt = Date.now() + CACHE_TTL_MS
+      return dashboardCache.data
+    }
+    throw err
+  }
+}
+
+async function fetchAndBuild(spreadsheetId: string): Promise<DashboardData> {
 
   const [
     mainValues, membersValues, w1Cell, w2Cell, w3Cell,
