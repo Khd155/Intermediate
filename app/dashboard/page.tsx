@@ -3,7 +3,7 @@ import { getDashboardData } from '@/lib/sheetsApi'
 import { DashboardClient } from '@/components/DashboardClient'
 import { DashboardSkeleton } from '@/components/cards/DashboardSkeleton'
 
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 async function DashboardContent() {
   const data = await getDashboardData()

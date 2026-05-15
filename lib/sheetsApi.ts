@@ -68,7 +68,7 @@ async function getSheetTitle(spreadsheetId: string, gid: number): Promise<string
   const token = await getAccessToken()
   const res = await fetch(`${SHEETS_API}/${spreadsheetId}?fields=sheets.properties`, {
     headers: { Authorization: `Bearer ${token}` },
-    next: { revalidate: 3600 },
+    cache: 'no-store',
   })
 
   if (!res.ok) throw new Error(`Metadata error: ${await res.text()}`)
@@ -99,7 +99,7 @@ async function fetchByGid(
 
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
-    next: { revalidate: 60 },
+    cache: 'no-store',
   })
 
   if (!res.ok) {
