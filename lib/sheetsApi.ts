@@ -199,7 +199,7 @@ async function fetchAndBuild(spreadsheetId: string): Promise<DashboardData> {
     taq_muslim_w3, taq_bukhari_w3,
     hifzValues,
   ] = await Promise.all([
-    fetchByGid(spreadsheetId, GID_HALAQA, 'A1:AV200'),
+    fetchByGid(spreadsheetId, GID_HALAQA, 'A1:AW200'),
     fetchByGid(spreadsheetId, GID_MEMBERS, 'A1:C200'),
     fetchByGid(spreadsheetId, GID_HALAQA, 'E40'),
     fetchByGid(spreadsheetId, GID_HALAQA, 'T40'),
